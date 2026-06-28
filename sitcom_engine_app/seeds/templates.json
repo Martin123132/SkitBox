@@ -1,0 +1,272 @@
+[
+  {
+    "id": "shared_house",
+    "name": "Shared House",
+    "type": "House",
+    "tone": "warm chaos",
+    "summary": "A shared house turns chores, mugs, and fridge notes into constitutional incidents.",
+    "state": {
+      "version": 1,
+      "template_id": "shared_house",
+      "template_selected": true,
+      "show_name": "The Shared Roof",
+      "sitcom_type": "House",
+      "tone": "warm chaos",
+      "core_rule": "Nobody leaves the kitchen until the small problem has become a household policy.",
+      "recurring_premise": "A shared house keeps turning ordinary chores into ceremonies, trials, and minor betrayals.",
+      "characters": [
+        {"name": "Nina", "role": "self-appointed house manager", "want": "respect without asking twice", "flaw": "turns fridge notes into law", "phrase": "We need a system.", "pressure": "unlabelled leftovers"},
+        {"name": "Baz", "role": "optimistic disaster friend", "want": "everyone to trust the plan", "flaw": "starts with confidence and ends with a ladder", "phrase": "Hear me out.", "pressure": "being asked for details"},
+        {"name": "Mo", "role": "quiet observer with receipts", "want": "peace, snacks, and accurate minutes", "flaw": "reveals the key fact too late", "phrase": "I wrote that down.", "pressure": "people touching the good mug"},
+        {"name": "Auntie Val", "role": "visiting relative with sofa authority", "want": "to be proven right by the kettle cycle", "flaw": "weaponises nostalgia", "phrase": "In my day, that meant something.", "pressure": "modern appliances"},
+        {"name": "Theo", "role": "creative tenant between projects", "want": "a dramatic origin story for every errand", "flaw": "confuses vibes with evidence", "phrase": "This is actually symbolic.", "pressure": "forms with boxes"}
+      ],
+      "locations": [
+        {"name": "Kitchen", "texture": "a kettle, a heroic chair, and a fridge covered in passive-aggressive notes", "rule": "all arguments become official when someone opens a cupboard"},
+        {"name": "Living Room", "texture": "one tired sofa, two remote controls, and a lamp nobody admits buying", "rule": "whoever holds the remote has ceremonial authority"},
+        {"name": "Landing", "texture": "laundry baskets, old paint tins, and a suspiciously important shoe rack", "rule": "private conversations echo at exactly the wrong time"}
+      ],
+      "props": [
+        {"name": "The Good Mug", "joke": "everyone says it is not special while protecting it with their life"},
+        {"name": "The Second Remote", "joke": "it controls nothing except confidence"},
+        {"name": "The Chore Wheel", "joke": "it keeps landing on people who claim not to believe in wheels"}
+      ],
+      "jokes": [
+        {"name": "The Chair Was Always There", "text": "the house refuses to admit when a chair appeared"},
+        {"name": "Emergency Biscuits", "text": "someone produces biscuits whenever emotions become administrative"},
+        {"name": "The Kettle Knows", "text": "the kettle clicks at moments that feel legally meaningful"}
+      ],
+      "rules": [
+        {"name": "Fridge Law", "text": "anything written on the fridge outranks common sense"},
+        {"name": "Cupboard Escalation", "text": "opening a cupboard makes the lie more specific"},
+        {"name": "Sofa Court", "text": "the person in the corner cushion may issue one terrible ruling"}
+      ],
+      "relationships": [
+        {"from": "Nina", "to": "Baz", "dynamic": "Nina needs Baz's charm and distrusts every sentence he starts"},
+        {"from": "Mo", "to": "Auntie Val", "dynamic": "Mo keeps factual notes while Auntie Val keeps emotional receipts"},
+        {"from": "Theo", "to": "Nina", "dynamic": "Theo calls Nina's rules folklore, which makes Nina create more rules"}
+      ],
+      "premises": [
+        {"title": "The Inspection", "spark": "a visitor is coming and everyone disagrees about what counts as tidy"},
+        {"title": "The Missing Mug", "spark": "the good mug vanishes ten minutes before Auntie Val arrives"},
+        {"title": "The Chore Vote", "spark": "a democratic chore system immediately becomes a constitutional crisis"}
+      ]
+    }
+  },
+  {
+    "id": "office",
+    "name": "Office",
+    "type": "Office",
+    "tone": "dry panic",
+    "summary": "A failing workplace treats meetings, printers, and policy updates like emotional warfare.",
+    "state": {
+      "version": 1,
+      "template_id": "office",
+      "template_selected": true,
+      "show_name": "Quarterly Feelings",
+      "sitcom_type": "Office",
+      "tone": "dry panic",
+      "core_rule": "Every meeting must create a smaller meeting that is somehow more important.",
+      "recurring_premise": "A team tries to look professional while the office equipment exposes their true motives.",
+      "characters": [
+        {"name": "Priya", "role": "operations lead", "want": "one clean process", "flaw": "uses spreadsheets as emotional armour", "phrase": "Can we align?", "pressure": "surprise agenda items"},
+        {"name": "Gareth", "role": "sales optimist", "want": "a win by lunch", "flaw": "mistakes volume for strategy", "phrase": "Big picture.", "pressure": "quiet rooms"},
+        {"name": "June", "role": "HR diplomat", "want": "everyone to stop making this documentable", "flaw": "smiles through danger", "phrase": "Let's name the behaviour.", "pressure": "printer rage"},
+        {"name": "Milo", "role": "junior analyst", "want": "to be useful and invisible", "flaw": "knows too much about the shared drive", "phrase": "Technically, yes.", "pressure": "being cc'd"},
+        {"name": "Tess", "role": "founder with theatre energy", "want": "a culture moment", "flaw": "turns every failure into a rebrand", "phrase": "This is actually an opportunity.", "pressure": "cashflow questions"}
+      ],
+      "locations": [
+        {"name": "Meeting Room B", "texture": "glass walls, dry markers, and a screen that will not mirror", "rule": "whoever controls the cable controls reality"},
+        {"name": "Kitchenette", "texture": "passive-aggressive mugs and a fridge with expired yoghurt politics", "rule": "private comments become company values"},
+        {"name": "Printer Corner", "texture": "warm paper, blinking lights, and an ancient toner prophecy", "rule": "the printer fails only when witnesses arrive"}
+      ],
+      "props": [
+        {"name": "The Broken Lanyard", "joke": "it grants access to rooms nobody wants to enter"},
+        {"name": "The Quarterly Deck", "joke": "every slide says less with more confidence"},
+        {"name": "The Printer Queue", "joke": "it knows who lied about working from home"}
+      ],
+      "jokes": [
+        {"name": "The Away Day", "text": "a bonding exercise is always threatened"},
+        {"name": "Reply-All Shame", "text": "someone replies to everyone and discovers a hierarchy"},
+        {"name": "Culture Fit", "text": "nobody can define it without sounding haunted"}
+      ],
+      "rules": [
+        {"name": "Meeting Gravity", "text": "any problem near a calendar becomes a meeting"},
+        {"name": "Printer Witness", "text": "hardware failure requires an audience"},
+        {"name": "Deck Law", "text": "a slide with an arrow outranks lived experience"}
+      ],
+      "relationships": [
+        {"from": "Priya", "to": "Gareth", "dynamic": "Priya turns Gareth's enthusiasm into action items"},
+        {"from": "June", "to": "Tess", "dynamic": "June translates Tess's chaos into acceptable policy language"},
+        {"from": "Milo", "to": "Priya", "dynamic": "Milo has the data Priya needs and the confidence of a damp receipt"}
+      ],
+      "premises": [
+        {"title": "The Mandatory Fun", "spark": "an away day announcement divides the office into factions"},
+        {"title": "The Deck Leak", "spark": "the wrong version of the quarterly deck reaches the wrong inbox"},
+        {"title": "The Printer Tribunal", "spark": "a missing contract is blamed on the printer queue"}
+      ]
+    }
+  },
+  {
+    "id": "pub",
+    "name": "Pub",
+    "type": "Pub",
+    "tone": "rowdy warmth",
+    "summary": "Regulars, quiz nights, and a haunted fruit machine turn one pub into a village court.",
+    "state": {
+      "version": 1,
+      "template_id": "pub",
+      "template_selected": true,
+      "show_name": "The Crooked Bell",
+      "sitcom_type": "Pub",
+      "tone": "rowdy warmth",
+      "core_rule": "Any rumour told at the bar becomes local history by closing time.",
+      "recurring_premise": "The pub regulars solve tiny scandals with the seriousness of national government.",
+      "characters": [
+        {"name": "Mags", "role": "landlady", "want": "peace and a full till", "flaw": "knows every secret and hints at all of them", "phrase": "Careful now.", "pressure": "quiz night disputes"},
+        {"name": "Len", "role": "bar stool philosopher", "want": "to be consulted", "flaw": "answers different questions than asked", "phrase": "Funny you should say that.", "pressure": "being ignored"},
+        {"name": "Rafi", "role": "new chef", "want": "the specials board respected", "flaw": "turns snacks into manifestos", "phrase": "It's a concept.", "pressure": "plain crisps"},
+        {"name": "Debs", "role": "quiz captain", "want": "victory with witnesses", "flaw": "treats trivia as law", "phrase": "Point of order.", "pressure": "ambiguous questions"},
+        {"name": "Colin", "role": "fruit machine believer", "want": "one big win and emotional closure", "flaw": "sees patterns in blinking lights", "phrase": "It's due.", "pressure": "exact change"}
+      ],
+      "locations": [
+        {"name": "Main Bar", "texture": "sticky tables, old brass, and a bell nobody should ring", "rule": "bar debates require a witness and a snack"},
+        {"name": "Snug", "texture": "low ceiling, framed football photos, and a radiator with opinions", "rule": "private plots become public folklore"},
+        {"name": "Beer Garden", "texture": "wobbly benches and a fence that hears everything", "rule": "outside voices carry inside consequences"}
+      ],
+      "props": [
+        {"name": "The Quiz Trophy", "joke": "it is technically just a cup but emotionally a throne"},
+        {"name": "The Fruit Machine", "joke": "it flashes like it knows a secret"},
+        {"name": "The Specials Board", "joke": "every spelling mistake starts a movement"}
+      ],
+      "jokes": [
+        {"name": "Last Orders Wisdom", "text": "everyone becomes profound ten minutes too late"},
+        {"name": "The Bell Incident", "text": "nobody agrees who rang the bell first"},
+        {"name": "Crisp Pairing", "text": "snacks are matched to emotional states"}
+      ],
+      "rules": [
+        {"name": "Bar Lore", "text": "the third retelling becomes fact"},
+        {"name": "Quiz Court", "text": "trivia disputes must be judged loudly"},
+        {"name": "Bell Debt", "text": "ringing the bell creates obligations"}
+      ],
+      "relationships": [
+        {"from": "Mags", "to": "Len", "dynamic": "Mags lets Len talk until he accidentally solves something"},
+        {"from": "Debs", "to": "Colin", "dynamic": "Debs wants evidence while Colin wants destiny"},
+        {"from": "Rafi", "to": "Mags", "dynamic": "Rafi calls it cuisine and Mags calls it Tuesday"}
+      ],
+      "premises": [
+        {"title": "The Quiz Appeal", "spark": "a disputed answer threatens the quiz trophy's legitimacy"},
+        {"title": "The Bell Debt", "spark": "someone rings the bell and cannot afford the social consequences"},
+        {"title": "The Specials Coup", "spark": "the specials board accidentally insults a regular"}
+      ]
+    }
+  },
+  {
+    "id": "school",
+    "name": "School",
+    "type": "School",
+    "tone": "bright disorder",
+    "summary": "A staff room and a school hall turn tiny mistakes into assemblies, inspections, and legends.",
+    "state": {
+      "version": 1,
+      "template_id": "school",
+      "template_selected": true,
+      "show_name": "After Assembly",
+      "sitcom_type": "School",
+      "tone": "bright disorder",
+      "core_rule": "Anything said near the photocopier becomes a staff-wide initiative.",
+      "recurring_premise": "Teachers try to educate children while mostly being defeated by forms, bells, and laminators.",
+      "characters": [
+        {"name": "Mr Vale", "role": "history teacher", "want": "one lesson with dignity", "flaw": "turns examples into speeches", "phrase": "Context matters.", "pressure": "wet play"},
+        {"name": "Miss Noor", "role": "science teacher", "want": "evidence and a working sink", "flaw": "underestimates chaos as a variable", "phrase": "What are we observing?", "pressure": "glitter"},
+        {"name": "Jan", "role": "school secretary", "want": "the day to obey the timetable", "flaw": "knows every workaround", "phrase": "I've seen worse.", "pressure": "parents at reception"},
+        {"name": "Coach Rob", "role": "PE teacher", "want": "team spirit without paperwork", "flaw": "makes every problem a drill", "phrase": "Quick warm-up.", "pressure": "lost kit"},
+        {"name": "Mrs Finch", "role": "headteacher", "want": "calm excellence for exactly one hour", "flaw": "smiles like an alarm bell", "phrase": "Wonderful. Why?", "pressure": "inspectors"}
+      ],
+      "locations": [
+        {"name": "Staff Room", "texture": "mugs, marking piles, and a sofa nobody trusts", "rule": "private complaints become policy"},
+        {"name": "School Hall", "texture": "stacked chairs, squeaky floor, and a microphone with ambition", "rule": "announcements create their own emergencies"},
+        {"name": "Photocopier Corner", "texture": "paper trays, jammed pages, and the smell of surrender", "rule": "the copier reveals hidden alliances"}
+      ],
+      "props": [
+        {"name": "The Laminator", "joke": "it makes bad ideas permanent"},
+        {"name": "The Lost Whistle", "joke": "whoever finds it becomes too powerful"},
+        {"name": "The Inspection Clipboard", "joke": "it records judgement before anyone writes on it"}
+      ],
+      "jokes": [
+        {"name": "Wet Play", "text": "rain turns everyone into a philosopher of containment"},
+        {"name": "Assembly Voice", "text": "teachers speak normally until a microphone appears"},
+        {"name": "The Good Glue Sticks", "text": "no one knows who controls the supply"}
+      ],
+      "rules": [
+        {"name": "Bell Law", "text": "the bell ends nothing if adults are still explaining"},
+        {"name": "Laminated Truth", "text": "laminated paper outranks verbal instructions"},
+        {"name": "Clipboard Gravity", "text": "clipboards attract accountability"}
+      ],
+      "relationships": [
+        {"from": "Jan", "to": "Mrs Finch", "dynamic": "Jan knows what actually works while Mrs Finch knows what sounds inspectable"},
+        {"from": "Mr Vale", "to": "Miss Noor", "dynamic": "history and science disagree over whether this has happened before"},
+        {"from": "Coach Rob", "to": "Jan", "dynamic": "Coach Rob creates emergencies Jan has already labelled"}
+      ],
+      "premises": [
+        {"title": "The Inspection Clipboard", "spark": "an inspector's clipboard goes missing before assembly"},
+        {"title": "The Laminated Rumour", "spark": "a rumour gets laminated and becomes policy"},
+        {"title": "The Whistle Vote", "spark": "the lost whistle is found in the staff room"}
+      ]
+    }
+  },
+  {
+    "id": "spaceship",
+    "name": "Spaceship",
+    "type": "Spaceship",
+    "tone": "cosmic workplace panic",
+    "summary": "A low-budget spaceship treats alien contact, broken doors, and crew rotas like office admin.",
+    "state": {
+      "version": 1,
+      "template_id": "spaceship",
+      "template_selected": true,
+      "show_name": "Deck Seven",
+      "sitcom_type": "Spaceship",
+      "tone": "cosmic workplace panic",
+      "core_rule": "Every space emergency must be logged as a facilities issue before anyone panics.",
+      "recurring_premise": "A crew tries to explore the galaxy while the ship behaves like a badly run shared office.",
+      "characters": [
+        {"name": "Captain Mara", "role": "captain with budget anxiety", "want": "heroism within policy", "flaw": "announces calm too dramatically", "phrase": "Maintain composure.", "pressure": "blinking lights"},
+        {"name": "Kip", "role": "engineer", "want": "the ship to stop developing opinions", "flaw": "fixes things with personal insults", "phrase": "That's not standard.", "pressure": "mystery hums"},
+        {"name": "Sora", "role": "communications officer", "want": "one message without subtext", "flaw": "translates tone before words", "phrase": "I'm hearing tension.", "pressure": "open channels"},
+        {"name": "Unit 4", "role": "service robot", "want": "clear instructions and better wheels", "flaw": "takes metaphors literally", "phrase": "Please define normal.", "pressure": "wet floors"},
+        {"name": "Dr Pell", "role": "ship medic", "want": "everyone to stop calling feelings symptoms", "flaw": "diagnoses the room", "phrase": "That is not how bodies work.", "pressure": "crew bonding"}
+      ],
+      "locations": [
+        {"name": "Bridge", "texture": "dim panels, heroic chairs, and one cup holder too few", "rule": "any blinking light can call a meeting"},
+        {"name": "Airlock", "texture": "warning stripes, dramatic doors, and a mop bucket with clearance", "rule": "goodbyes become procedural"},
+        {"name": "Mess Deck", "texture": "metal trays, recycled coffee, and gossip travelling faster than light", "rule": "food complaints become command issues"}
+      ],
+      "props": [
+        {"name": "The Translation Earpiece", "joke": "it translates sincerity as sarcasm"},
+        {"name": "The Broken Airlock Button", "joke": "everyone presses it while saying they know better"},
+        {"name": "The Crew Rota", "joke": "it assigns blame before shifts"}
+      ],
+      "jokes": [
+        {"name": "Facilities Ticket", "text": "cosmic horror is logged as maintenance"},
+        {"name": "Artificial Gravity Mood", "text": "everyone blames emotions on gravity settings"},
+        {"name": "Bridge Voice", "text": "ordinary admin sounds heroic on the intercom"}
+      ],
+      "rules": [
+        {"name": "Airlock Protocol", "text": "doors only open after feelings are named"},
+        {"name": "Ticket First", "text": "nothing is real until logged"},
+        {"name": "Rota Command", "text": "the crew rota outranks rank"}
+      ],
+      "relationships": [
+        {"from": "Captain Mara", "to": "Kip", "dynamic": "Mara wants command language while Kip wants the panel to stop lying"},
+        {"from": "Sora", "to": "Unit 4", "dynamic": "Sora interprets nuance while Unit 4 asks for definitions"},
+        {"from": "Dr Pell", "to": "Mara", "dynamic": "Dr Pell treats command decisions as symptoms with uniforms"}
+      ],
+      "premises": [
+        {"title": "The Airlock Incident", "spark": "the airlock button sticks during a diplomatic call"},
+        {"title": "The Translation Problem", "spark": "the earpiece translates a compliment as a threat"},
+        {"title": "The Rota Mutiny", "spark": "the crew rota assigns command to the service robot"}
+      ]
+    }
+  }
+]

@@ -1,0 +1,142 @@
+{
+  "version": 1,
+  "template_id": "shared_house",
+  "template_selected": false,
+  "show_name": "The Shared Roof",
+  "sitcom_type": "House",
+  "tone": "warm chaos",
+  "core_rule": "Nobody leaves the kitchen until the small problem has become a household policy.",
+  "recurring_premise": "A shared house keeps turning ordinary chores into ceremonies, trials, and minor betrayals.",
+  "characters": [
+    {
+      "name": "Nina",
+      "role": "self-appointed house manager",
+      "want": "respect without having to ask twice",
+      "flaw": "turns every note on the fridge into legislation",
+      "phrase": "We need a system.",
+      "pressure": "unlabelled leftovers"
+    },
+    {
+      "name": "Baz",
+      "role": "optimistic disaster friend",
+      "want": "everyone to think the plan is under control",
+      "flaw": "starts with confidence and ends with a borrowed ladder",
+      "phrase": "Hear me out.",
+      "pressure": "being asked for details"
+    },
+    {
+      "name": "Mo",
+      "role": "quiet observer with receipts",
+      "want": "peace, snacks, and accurate minutes",
+      "flaw": "waits too long before revealing the devastating fact",
+      "phrase": "I wrote that down.",
+      "pressure": "people touching the good mug"
+    },
+    {
+      "name": "Auntie Val",
+      "role": "visiting relative who treats the sofa like court",
+      "want": "to be proven right by the end of the kettle cycle",
+      "flaw": "weaponises nostalgia",
+      "phrase": "In my day, that meant something.",
+      "pressure": "modern appliances"
+    },
+    {
+      "name": "Theo",
+      "role": "creative tenant between projects",
+      "want": "a dramatic origin story for every errand",
+      "flaw": "confuses vibes with evidence",
+      "phrase": "This is actually symbolic.",
+      "pressure": "forms with boxes"
+    }
+  ],
+  "locations": [
+    {
+      "name": "Kitchen",
+      "texture": "a kettle, a heroic chair, and a fridge covered in passive-aggressive notes",
+      "rule": "all arguments become official when someone opens a cupboard"
+    },
+    {
+      "name": "Living Room",
+      "texture": "one tired sofa, two remote controls, and a lamp nobody admits buying",
+      "rule": "whoever holds the remote has ceremonial authority"
+    },
+    {
+      "name": "Landing",
+      "texture": "laundry baskets, old paint tins, and a suspiciously important shoe rack",
+      "rule": "private conversations echo at exactly the wrong time"
+    }
+  ],
+  "props": [
+    {
+      "name": "The Good Mug",
+      "joke": "everyone agrees it is not special while protecting it with their life"
+    },
+    {
+      "name": "The Second Remote",
+      "joke": "it controls nothing except confidence"
+    },
+    {
+      "name": "The Chore Wheel",
+      "joke": "it keeps landing on people who claim not to believe in wheels"
+    }
+  ],
+  "jokes": [
+    {
+      "name": "The Chair Was Always There",
+      "text": "the house refuses to admit when a chair appeared"
+    },
+    {
+      "name": "Emergency Biscuits",
+      "text": "someone produces biscuits whenever emotions become administrative"
+    },
+    {
+      "name": "The Kettle Knows",
+      "text": "the kettle clicks at moments that feel legally meaningful"
+    }
+  ],
+  "rules": [
+    {
+      "name": "Fridge Law",
+      "text": "anything written on the fridge outranks common sense"
+    },
+    {
+      "name": "Cupboard Escalation",
+      "text": "opening a cupboard makes the lie more specific"
+    },
+    {
+      "name": "Sofa Court",
+      "text": "the person in the corner cushion may issue one terrible ruling"
+    }
+  ],
+  "relationships": [
+    {
+      "from": "Nina",
+      "to": "Baz",
+      "dynamic": "Nina needs Baz's charm and distrusts every sentence he starts"
+    },
+    {
+      "from": "Mo",
+      "to": "Auntie Val",
+      "dynamic": "Mo keeps factual notes while Auntie Val keeps emotional receipts"
+    },
+    {
+      "from": "Theo",
+      "to": "Nina",
+      "dynamic": "Theo calls Nina's rules folklore, which makes Nina create more rules"
+    }
+  ],
+  "premises": [
+    {
+      "title": "The Inspection",
+      "spark": "a visitor is coming and everyone disagrees about what counts as tidy"
+    },
+    {
+      "title": "The Missing Mug",
+      "spark": "the good mug vanishes ten minutes before Auntie Val arrives"
+    },
+    {
+      "title": "The Chore Vote",
+      "spark": "a democratic chore system immediately becomes a constitutional crisis"
+    }
+  ]
+}

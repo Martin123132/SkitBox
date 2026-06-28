@@ -1,0 +1,88 @@
+﻿<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>SkitBox</title>
+    <link rel="icon" href="data:," />
+    <link rel="stylesheet" href="/static/app.css" />
+  </head>
+  <body>
+    <div class="scene-backdrop" aria-hidden="true">
+      <div class="stage-wash"></div>
+      <div class="ufo-vignette">
+        <span class="ufo-dish"></span>
+        <span class="ufo-beam"></span>
+        <span class="tiny-person"></span>
+      </div>
+      <div class="mystery-vignette">
+        <span class="tape tape-one"></span>
+        <span class="tape tape-two"></span>
+        <span class="chalk-head"></span>
+        <span class="chalk-body"></span>
+      </div>
+      <div class="romance-vignette">
+        <span class="heart"></span>
+        <span class="person person-left"></span>
+        <span class="person person-right"></span>
+        <span class="hand-line"></span>
+      </div>
+      <div class="prop-vignette">
+        <span class="mug-face"></span>
+        <span class="remote-prop"></span>
+      </div>
+    </div>
+    <div class="app-shell">
+      <aside class="side-nav" aria-label="Main navigation">
+        <a class="brand" href="/start" data-link>
+        <span class="brand-mark">SB</span>
+          <span>
+            <strong>SkitBox</strong>
+            <small>tiny sitcoms from weird ideas</small>
+          </span>
+        </a>
+        <nav>
+          <div class="side-group">
+            <p class="side-group-title">Build</p>
+            <a href="/start" data-link data-page="start">Start</a>
+            <a href="/guide" data-link data-page="guide">Guide</a>
+            <a href="/templates" data-link data-page="templates">Templates</a>
+            <a href="/bible" data-link data-page="bible">Bible</a>
+            <a href="/characters" data-link data-page="characters">Characters</a>
+            <a href="/locations" data-link data-page="locations">Locations</a>
+            <a href="/jokes" data-link data-page="jokes">Jokes</a>
+            <a href="/sparks" data-link data-page="sparks">Sparks</a>
+          </div>
+          <div class="side-group">
+            <p class="side-group-title">Scenes</p>
+            <a href="/generate" data-link data-page="generate">Generate</a>
+            <a href="/library" data-link data-page="library">Library</a>
+            <a href="/setup" data-link data-page="setup">Setup</a>
+          </div>
+        </nav>
+        <div class="side-status" id="sideStatus">
+          <span class="status-dot red"></span>
+          <span>Loading show</span>
+        </div>
+      </aside>
+
+      <div class="main-shell">
+        <header class="topbar">
+          <div>
+            <p class="page-step" id="pageStep">Start</p>
+            <h1 id="pageTitle">SkitBox</h1>
+          </div>
+          <div class="status-pill" id="doctorStatus">Local only</div>
+        </header>
+        <section class="coach-row" id="coachRow" aria-live="polite">
+          <span class="coach-dot status-dot red" id="coachLight"></span>
+          <p id="coachText" class="coach-text">Loading your show progress.</p>
+          <button id="coachButton" class="coach-button">Continue</button>
+        </section>
+
+        <main id="pageRoot" class="page-root" tabindex="-1"></main>
+      </div>
+    </div>
+    <script src="/static/app.js"></script>
+  </body>
+</html>

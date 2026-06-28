@@ -1,0 +1,1236 @@
+﻿const APP_NAME = "SkitBox";
+
+const PAGES = {
+  start: ["Start", "Ready Room"],
+  templates: ["Templates", "Choose Your Sitcom"],
+  guide: ["Guide", "How to Build"],
+  bible: ["Bible", "Show Bible"],
+  characters: ["Characters", "Cast"],
+  locations: ["Locations", "Places & Props"],
+  jokes: ["Jokes", "Jokes & Rules"],
+  sparks: ["Sparks", "Scene Sparks"],
+  generate: ["Generate", "Skit Generator"],
+  library: ["Library", "Skit Library"],
+  setup: ["Setup", "Local Setup"],
+};
+
+const WORKFLOW_STEPS = [
+  { page: "templates", title: "1) Pick a show world", hint: "Choose a starting style, tone, and premise." },
+  { page: "bible", title: "2) Write the bible", hint: "Set core rule and recurring premise." },
+  { page: "characters", title: "3) Add cast", hint: "Give people names and personality lines." },
+  { page: "locations", title: "4) Add places and props", hint: "Your room gets room rules, textures, and hooks." },
+  { page: "jokes", title: "5) Add jokes and rules", hint: "Load recurring material and relationships." },
+  { page: "sparks", title: "6) Choose scene sparks", hint: "Describe a weird scene or pick 1-3 sparks." },
+  { page: "generate", title: "7) Generate skit", hint: "Set cast size and click generate." },
+];
+
+const PROMPT_EXAMPLES = [
+  {
+    label: "Saucer + tape",
+    prompt: "A flying saucer beams up the landlord behind police tape while two people hold hands.",
+  },
+  {
+    label: "Awkward romance",
+    prompt: "Two rivals accidentally hold hands during a fake romantic plan and everyone starts voting on it.",
+  },
+  {
+    label: "Missing prop",
+    prompt: "The good mug goes missing and the whole room treats the sofa like a crime scene.",
+  },
+  {
+    label: "Guest panic",
+    prompt: "A surprise inspector arrives while everyone hides a terrible plan under a handwritten note.",
+  },
+];
+
+const DEMO_TEMPLATE_ID = "shared_house";
+const DEMO_PROMPT = PROMPT_EXAMPLES[0].prompt;
+const DEMO_OPTIONS = {
+  seed: 20260627,
+  mode: "Random",
+  cast_size: 4,
+  weirdness: 72,
+};
+
+const PAGE_GUIDE_NOTES = {
+  start: {
+    title: "First thing first",
+    text: "Pick a world, fill the Bible, set cast and places, then generate when it turns green.",
+  },
+  templates: {
+    title: "Template = your launch point",
+    text: "This sets tone, style, and premise. Start here and change details later.",
+  },
+  bible: {
+    title: "Show spine",
+    text: "Keep the premise simple and clear. A strong core gives every scene a direction.",
+  },
+  characters: {
+    title: "People drive scenes",
+    text: "Short, specific wants and flaws usually create the best chaos.",
+  },
+  locations: {
+    title: "Spaces create stakes",
+    text: "One memorable room + one prop is enough to give scenes an anchor.",
+  },
+  jokes: {
+    title: "Recurring ingredients",
+    text: "Short jokes and clear relationships make scenes read like improv with structure.",
+  },
+  sparks: {
+    title: "Scene steering",
+    text: "Describe a weird scene or pick up to three sparks when you want a strong direction.",
+  },
+  generate: {
+    title: "Generate with intent",
+    text: "Tune the controls, optionally describe a scene, then press Generate Skit.",
+  },
+  library: {
+    title: "Saved moments",
+    text: "Re-open favourites to reuse or share your best scenes quickly.",
+  },
+  setup: {
+    title: "Local support",
+    text: "Use this page if you want to open your export folder or inspect data storage.",
+  },
+  guide: {
+    title: "Your onboarding flow",
+    text: "Walk one step at a time. Green means ready, amber means mostly ready, red means blocked.",
+  },
+};
+
+const state = {
+  show: null,
+  readiness: null,
+  doctor: null,
+  templates: [],
+  sparks: [],
+  selectedSparks: [],
+  scenePrompt: "",
+  promptAnalysis: null,
+  favourites: [],
+  currentEpisode: null,
+  page: pageFromPath(location.pathname),
+};
+
+function el(id) {
+  return document.getElementById(id);
+}
+
+function pageFromPath(path) {
+  const page = String(path || "/start").replace("/", "") || "start";
+  return PAGES[page] ? page : "start";
+}
+
+async function api(path, options = {}) {
+  const response = await fetch(path, {
+    headers: { "content-type": "application/json" },
+    ...options,
+  });
+  const data = await response.json();
+  if (!response.ok || !data.ok) {
+    throw new Error(data.error || `${APP_NAME} request failed`);
+  }
+  return data;
+}
+
+async function loadApp() {
+  const [stateData, favouritesData, doctorData, templatesData, sparksData] = await Promise.all([
+    api("/api/state"),
+    api("/api/favourites"),
+    api("/api/doctor"),
+    api("/api/templates"),
+    api("/api/sparks"),
+  ]);
+  state.show = stateData.state;
+  state.readiness = stateData.readiness;
+  state.favourites = favouritesData.favourites;
+  state.doctor = doctorData;
+  state.templates = templatesData.templates;
+  state.sparks = sparksData.sparks;
+  if (!state.show.template_selected && state.page === "start") {
+    state.page = "guide";
+    history.replaceState({}, "", "/guide");
+  }
+  render();
+}
+
+function navigate(page, replace = false) {
+  state.page = PAGES[page] ? page : "start";
+  const url = `/${state.page}`;
+  if (replace) {
+    history.replaceState({}, "", url);
+  } else {
+    history.pushState({}, "", url);
+  }
+  render();
+  focusPageTop();
+}
+
+function render() {
+  if (!state.show || !state.readiness) {
+    el("pageRoot").innerHTML = `<section class="panel"><h2>Loading ${APP_NAME}</h2></section>`;
+    return;
+  }
+  const [step, title] = PAGES[state.page];
+  document.body.dataset.page = state.page;
+  document.body.dataset.mood = pageMood(state.page);
+  el("pageStep").textContent = step;
+  el("pageTitle").textContent = title;
+  el("doctorStatus").textContent = `Local only - v${state.doctor.version}`;
+  document.querySelectorAll("[data-page]").forEach((node) => {
+    node.classList.toggle("active", node.dataset.page === state.page);
+  });
+  renderNavigationStatus();
+  const sideStatus = el("sideStatus");
+  sideStatus.innerHTML = `${dot(state.readiness.overall)}<span>${labelStatus(state.readiness.overall)} - ${escapeHtml(state.readiness.next_action)}</span>`;
+  renderCoachRow();
+
+  if (state.page === "start") renderStart();
+  if (state.page === "templates") renderTemplates();
+  if (state.page === "guide") renderGuide();
+  if (state.page === "bible") renderBible();
+  if (state.page === "characters") renderCharacters();
+  if (state.page === "locations") renderLocations();
+  if (state.page === "jokes") renderJokes();
+  if (state.page === "sparks") renderSparks();
+  if (state.page === "generate") renderGenerate();
+  if (state.page === "library") renderLibrary();
+  if (state.page === "setup") renderSetup();
+}
+
+function pageMood(page) {
+  if (page === "sparks") return "sparks";
+  if (page === "generate") return "generate";
+  if (page === "library") return "library";
+  if (page === "setup") return "library";
+  return "guide";
+}
+
+function renderGuide() {
+  const readinessLabel = `${state.readiness.next_action}`;
+  el("pageRoot").innerHTML = `
+    <section class="panel">
+      <h2>Build your first skit in 7 quick steps</h2>
+      ${renderPageGuide("guide")}
+      <p class="helper-text">Use one page at a time. Complete each step, then move to the next.</p>
+      <div class="demo-callout">
+        <strong>Want the fast path?</strong>
+        <p>Generate one ready-made scene first, then edit the show once you have seen the shape.</p>
+        <div class="action-row compact">
+          <button class="primary" id="guideDemoButton">Show Me A Funny One</button>
+        </div>
+        <p class="message" id="guideMessage"></p>
+      </div>
+      <div class="guide-track guide-track-block">${renderGuideTrack({includeCurrent: true})}</div>
+      <p class="helper-text">Ready check: ${escapeHtml(readinessLabel)}</p>
+    </section>
+  `;
+  el("guideDemoButton").addEventListener("click", () => runDemoMode("guideMessage"));
+  setGuidePageButtons();
+}
+
+function renderCoachRow() {
+  if (!state.readiness) {
+    return;
+  }
+  const row = el("coachRow");
+  const light = el("coachLight");
+  const text = el("coachText");
+  const button = el("coachButton");
+  const overall = String(state.readiness.overall || "red");
+  const nextAction = String(state.readiness.next_action || "Continue");
+  const nextPage = state.readiness.next_page || "start";
+
+  row.classList.remove("red", "amber", "green");
+  light.classList.remove("red", "amber", "green");
+  row.classList.add(overall);
+  light.classList.add(overall);
+
+  text.textContent = `${labelStatus(overall)}: ${nextAction}.`;
+  if (nextPage && nextPage !== state.page && PAGES[nextPage]) {
+    button.textContent = `Go to ${PAGES[nextPage][0]}`;
+    button.hidden = false;
+    button.onclick = () => navigate(nextPage);
+  } else {
+    button.hidden = true;
+  }
+}
+
+function renderNavigationStatus() {
+  const nextPage = state.readiness?.next_page || "";
+  document.querySelectorAll(".side-nav nav a[data-page]").forEach((link) => {
+    const page = link.dataset.page || "start";
+    const label = PAGES[page]?.[0] || page;
+    const status = navPageStatus(page);
+    const isNext = page === nextPage;
+    link.dataset.status = status;
+    link.classList.toggle("next", isNext);
+    link.setAttribute("aria-label", `${label}: ${labelStatus(status)}${isNext ? ", next step" : ""}`);
+    link.innerHTML = `
+      <span class="nav-link-main">
+        <span class="nav-status-dot ${escapeAttr(status)}"></span>
+        <span>${escapeHtml(label)}</span>
+      </span>
+      ${isNext ? `<small>Next</small>` : ""}
+    `;
+  });
+}
+
+function navPageStatus(page) {
+  if (page === "start" || page === "guide") {
+    return state.readiness?.overall || "red";
+  }
+  if (page === "library") {
+    return state.favourites.length ? "green" : "amber";
+  }
+  if (page === "setup") {
+    return "green";
+  }
+  return workflowStepStatus(page);
+}
+
+function setGuidePageButtons() {
+  document.querySelectorAll("[data-guide-page]").forEach((button) => {
+    const target = button.dataset.guidePage;
+    button.addEventListener("click", () => navigate(target));
+  });
+}
+
+function renderGuideTrack({ includeCurrent = false, fromPage = null, maxSteps = 0 } = {}) {
+  const nextPage = state.readiness.next_page || "start";
+  const startIndex = workflowStartIndex(fromPage);
+  const stepCards = [];
+  for (const step of WORKFLOW_STEPS.slice(startIndex)) {
+    const status = workflowStepStatus(step.page);
+    const isCurrent = state.page === step.page;
+    const isNext = step.page === nextPage;
+    const disabled = isNext ? false : step.page === "generate" && status !== "green";
+    const buttonText = step.page === "generate" ? "Open Generator" : `Go to ${PAGES[step.page][0]}`;
+    const buttonClass = status === "green" ? "secondary-button" : "primary";
+    const statusText = `${labelStatus(status)}${isNext ? " - next" : ""}`;
+    const buttonMarkup = isCurrent
+      ? `<span class="guide-step-status">Current page</span>`
+      : `<button class="${buttonClass}" data-guide-page="${escapeAttr(step.page)}" ${disabled ? "disabled" : ""}>${buttonText}</button>`;
+
+    if (!includeCurrent && isCurrent) {
+      continue;
+    }
+
+    stepCards.push(`
+      <article class="guide-step ${status} ${isCurrent ? "current" : ""} ${isNext ? "next" : ""}">
+        <header class="guide-step-head">
+          ${dot(status)}
+          <div>
+            <strong>${escapeHtml(step.title)}</strong>
+            <small>${escapeHtml(step.hint)}</small>
+          </div>
+        </header>
+        <div class="guide-step-note">
+          <span>${escapeHtml(statusText)}</span>
+          ${buttonMarkup}
+        </div>
+      </article>
+    `);
+    if (maxSteps && stepCards.length >= maxSteps) {
+      break;
+    }
+  }
+  return `<div class="guide-track">${stepCards.join("")}</div>`;
+}
+
+function workflowStartIndex(fromPage) {
+  if (!fromPage) {
+    return 0;
+  }
+  const targetIndex = WORKFLOW_STEPS.findIndex((step) => step.page === fromPage);
+  return targetIndex >= 0 ? targetIndex : 0;
+}
+
+function workflowStepStatus(page) {
+  if (page === "generate") {
+    return state.readiness?.can_generate ? "green" : "amber";
+  }
+  if (!state.readiness?.pages) {
+    return "red";
+  }
+  if (page === "sparks") {
+    return "green";
+  }
+  return state.readiness.pages[page] || "red";
+}
+
+function renderStart() {
+  const canGenerate = canGenerateNow();
+  const nextPageHint = state.readiness?.next_action || "Complete your setup and return here";
+  el("pageRoot").innerHTML = `
+    <div class="page-grid">
+      <section class="panel">
+        <h2>${escapeHtml(state.show.show_name)}</h2>
+        ${renderPageGuide("start")}
+        <p>${escapeHtml(state.show.recurring_premise)}</p>
+        ${renderReadiness()}
+        <div class="action-row">
+          <button class="primary" id="startDemoButton">Show Me A Funny One</button>
+          <button class="primary" id="startGenerateButton" ${canGenerate ? "" : "disabled"}>Generate Skit</button>
+        </div>
+        <p class="helper-text" id="startMessage">${canGenerate ? "When you are ready, generate your first skit." : `${escapeHtml(nextPageHint)}.`}</p>
+      </section>
+      <aside class="panel flat">
+        <h3>Show Snapshot</h3>
+        <div class="pill-row">
+          <span class="pill">${escapeHtml(state.show.sitcom_type)}</span>
+          <span class="pill">${escapeHtml(state.show.tone)}</span>
+          <span class="pill">${state.readiness.counts.characters} cast</span>
+          <span class="pill">${state.readiness.counts.jokes} jokes</span>
+        </div>
+        <p class="next-action"><strong>Next</strong>${escapeHtml(state.readiness.next_action)}</p>
+        <div class="guide-track-mini">
+          ${renderGuideTrack({
+            includeCurrent: false,
+            fromPage: state.readiness.next_page || "templates",
+            maxSteps: 3,
+          })}
+        </div>
+      </aside>
+    </div>
+  `;
+  el("startDemoButton").addEventListener("click", () => runDemoMode("startMessage"));
+  const startGenerateButton = el("startGenerateButton");
+  if (canGenerate) {
+    startGenerateButton.addEventListener("click", () => generateEpisode(false));
+  }
+  setGuidePageButtons();
+}
+
+function renderTemplates() {
+  const cards = state.templates.map((template) => `
+    <article class="template-card ${state.show.template_id === template.id ? "active" : ""}">
+      <div>
+        <h3>${escapeHtml(template.name)}</h3>
+        <p>${escapeHtml(template.summary)}</p>
+        <div class="pill-row">
+          <span class="pill">${escapeHtml(template.type)}</span>
+          <span class="pill">${escapeHtml(template.tone)}</span>
+        </div>
+      </div>
+      <button class="primary" data-template-id="${escapeAttr(template.id)}">Use This</button>
+    </article>
+  `).join("");
+  el("pageRoot").innerHTML = `
+    <section class="panel">
+      <h2>Pick a Starting World</h2>
+      ${renderPageGuide("templates")}
+      <p>Choose one and start generating straight away. You can edit every part later.</p>
+      <div class="template-grid">${cards}</div>
+      <p class="helper-text" id="templatesMessage"></p>
+    </section>
+  `;
+  document.querySelectorAll("[data-template-id]").forEach((button) => {
+    button.addEventListener("click", () => applyTemplate(button.dataset.templateId));
+  });
+}
+
+function renderBible() {
+  el("pageRoot").innerHTML = `
+    <section class="panel">
+      <h2>Show Bible</h2>
+      ${renderPageGuide("bible")}
+      <div class="form-grid">
+        ${field("Show Name", "showName", state.show.show_name)}
+        ${selectField("Sitcom Type", "sitcomType", state.show.sitcom_type, ["House", "Office", "Pub", "School", "Family", "Spaceship", "Custom"])}
+        ${field("Tone", "tone", state.show.tone)}
+        ${textareaField("Core Rule", "coreRule", state.show.core_rule)}
+        ${textareaField("Recurring Premise", "recurringPremise", state.show.recurring_premise)}
+      </div>
+      <div class="action-row">
+        <button class="primary" id="saveBibleButton">Save Bible</button>
+      </div>
+      <p class="helper-text" id="bibleMessage"></p>
+    </section>
+  `;
+  el("saveBibleButton").addEventListener("click", saveBible);
+}
+
+function renderCharacters() {
+  const text = state.show.characters.map((item) => [
+    item.name,
+    item.role,
+    item.want,
+    item.flaw,
+    item.phrase,
+    item.pressure,
+  ].map(clean).join(" | ")).join("\n");
+  el("pageRoot").innerHTML = `
+    <div class="editor-layout">
+      <section class="panel editor-panel">
+        <h2>Characters ${state.readiness.counts.characters}/${state.readiness.targets.characters}</h2>
+        ${renderPageGuide("characters")}
+        <textarea id="charactersText">${escapeHtml(text)}</textarea>
+        <div class="action-row">
+          <button class="primary" id="saveCharactersButton">Save Characters</button>
+        </div>
+        <p class="helper-text" id="charactersMessage"></p>
+      </section>
+      <aside class="format-card">
+        <strong>${labelStatus(state.readiness.pages.characters)}</strong>
+        <code>Name | role | want | flaw | catchphrase | pressure point</code>
+      </aside>
+    </div>
+  `;
+  el("saveCharactersButton").addEventListener("click", saveCharacters);
+}
+
+function renderLocations() {
+  const locations = state.show.locations.map((item) => [item.name, item.texture, item.rule].map(clean).join(" | ")).join("\n");
+  const props = state.show.props.map((item) => [item.name, item.joke].map(clean).join(" | ")).join("\n");
+  el("pageRoot").innerHTML = `
+    <div class="editor-layout">
+      <section class="panel editor-panel">
+        <h2>Places & Props</h2>
+        ${renderPageGuide("locations")}
+        <label class="field">Locations<textarea id="locationsText">${escapeHtml(locations)}</textarea></label>
+        <label class="field">Props<textarea id="propsText">${escapeHtml(props)}</textarea></label>
+        <div class="action-row">
+          <button class="primary" id="saveLocationsButton">Save Places & Props</button>
+        </div>
+        <p class="helper-text" id="locationsMessage"></p>
+      </section>
+      <aside class="format-card">
+        <strong>${labelStatus(state.readiness.pages.locations)}</strong>
+        <code>Location | texture | room rule
+
+Prop | running joke</code>
+      </aside>
+    </div>
+  `;
+  el("saveLocationsButton").addEventListener("click", saveLocations);
+}
+
+function renderJokes() {
+  const jokes = state.show.jokes.map((item) => [item.name, item.text].map(clean).join(" | ")).join("\n");
+  const rules = state.show.rules.map((item) => [item.name, item.text].map(clean).join(" | ")).join("\n");
+  const relationships = state.show.relationships.map((item) => [item.from, item.to, item.dynamic].map(clean).join(" | ")).join("\n");
+  const premises = state.show.premises.map((item) => [item.title, item.spark].map(clean).join(" | ")).join("\n");
+  el("pageRoot").innerHTML = `
+    <div class="editor-layout">
+      <section class="panel editor-panel">
+        <h2>Jokes, Rules & Premises</h2>
+        ${renderPageGuide("jokes")}
+        <label class="field">Running Jokes<textarea id="jokesText">${escapeHtml(jokes)}</textarea></label>
+        <label class="field">Rules<textarea id="rulesText">${escapeHtml(rules)}</textarea></label>
+        <label class="field">Relationships<textarea id="relationshipsText">${escapeHtml(relationships)}</textarea></label>
+        <label class="field">Premises<textarea id="premisesText">${escapeHtml(premises)}</textarea></label>
+        <div class="action-row">
+          <button class="primary" id="saveJokesButton">Save Jokes & Rules</button>
+        </div>
+        <p class="helper-text" id="jokesMessage"></p>
+      </section>
+      <aside class="format-card">
+        <strong>${labelStatus(state.readiness.pages.jokes)}</strong>
+        <code>Joke | text
+Rule | text
+Character | character | dynamic
+Premise | spark</code>
+      </aside>
+    </div>
+  `;
+  el("saveJokesButton").addEventListener("click", saveJokes);
+}
+
+function renderSparks() {
+  const sparkCards = state.sparks.map((spark) => `
+    <button class="spark-choice ${state.selectedSparks.includes(spark.id) ? "selected" : ""}" data-spark-id="${escapeAttr(spark.id)}">
+      <span class="spark-icon ${sparkIconClass(spark.id)}"></span>
+      <span><strong>${escapeHtml(spark.name)}</strong><span>${escapeHtml(spark.description)}</span></span>
+    </button>
+  `).join("");
+  const hasSelectedSparks = state.selectedSparks.length > 0;
+  el("pageRoot").innerHTML = `
+    <div class="page-grid">
+      <section class="panel">
+        <h2>Pick 1-3 Scene Sparks</h2>
+        ${renderPageGuide("sparks")}
+        <p>These are not decoration. Selected sparks steer the mode, premise, conflict, and callback.</p>
+        <div class="prompt-tool">
+          <label class="field">Describe A Weird Scene
+            <textarea id="scenePromptInput" placeholder="A flying saucer beams up the landlord behind police tape while two people hold hands.">${escapeHtml(state.scenePrompt)}</textarea>
+          </label>
+          ${renderPromptExamples()}
+          <div class="action-row compact">
+            <button id="describePromptButton">Use Description</button>
+            <button class="primary" id="promptGenerateButton">Generate From Description</button>
+          </div>
+          <p class="helper-text" id="promptAnalysisMessage">${escapeHtml(promptAnalysisMessage())}</p>
+        </div>
+        <div class="spark-choice-grid">${sparkCards}</div>
+        <div class="action-row">
+          <button class="primary" id="sparkGenerateButton">Generate Skit</button>
+          ${hasSelectedSparks ? `<button class="secondary-button" id="clearSparksButton">Clear Sparks</button>` : ""}
+        </div>
+        <p class="helper-text" id="sparksMessage">${hasSelectedSparks ? `Selected: ${escapeHtml(selectedSparkLabel())}` : "No sparks selected yet."}</p>
+      </section>
+      <aside class="panel flat">
+        <h3>Current Recipe</h3>
+        <p class="next-action"><strong>Sparks</strong>${escapeHtml(selectedSparkLabel())}</p>
+        <p>Try combinations: UFO + Police Tape, Heart + Bad Plan, Missing Object + Rivalry.</p>
+      </aside>
+    </div>
+  `;
+  document.querySelectorAll("[data-spark-id]").forEach((button) => {
+    button.addEventListener("click", () => toggleSpark(button.dataset.sparkId));
+  });
+  el("scenePromptInput").addEventListener("input", () => {
+    state.scenePrompt = el("scenePromptInput").value;
+    state.promptAnalysis = null;
+    setMessage("promptAnalysisMessage", promptAnalysisMessage());
+  });
+  attachPromptExamples("scenePromptInput", "promptAnalysisMessage", renderSparks);
+  el("describePromptButton").addEventListener("click", async () => {
+    await describePrompt("scenePromptInput", "promptAnalysisMessage");
+    renderSparks();
+  });
+  el("promptGenerateButton").addEventListener("click", async () => {
+    const used = await describePrompt("scenePromptInput", "promptAnalysisMessage");
+    if (used) await generateEpisode(false);
+  });
+  el("sparkGenerateButton").addEventListener("click", () => generateEpisode(false));
+  const clearSparksButton = el("clearSparksButton");
+  if (clearSparksButton) {
+    clearSparksButton.addEventListener("click", () => {
+      state.selectedSparks = [];
+      state.promptAnalysis = null;
+      renderSparks();
+    });
+  }
+}
+
+function renderGenerate() {
+  const episode = state.currentEpisode;
+  const hasEpisode = Boolean(episode && episode.script);
+  const canGenerate = canGenerateNow();
+  el("pageRoot").innerHTML = `
+    <div class="page-grid">
+      <section class="panel">
+        <h2>Generate Skit</h2>
+        ${renderPageGuide("generate")}
+        <div class="form-grid">
+          ${selectField("Mode", "modeSelect", episode?.mode || "Random", ["Random", "Cold Open", "Bottle Episode", "Misunderstanding", "Rivalry", "Bad Plan", "Guest Star", "Secret Revealed", "Finale Chaos"])}
+          ${field("Seed", "seedInput", episode?.seed || "", "auto")}
+          <label class="field">Cast Size<input id="castSizeInput" type="number" min="2" max="5" value="${episode?.cast_size || 4}" /></label>
+          <label class="field">Weirdness <span id="weirdnessValue">${episode?.weirdness || 58}</span><input id="weirdnessInput" type="range" min="0" max="100" value="${episode?.weirdness || 58}" /></label>
+        </div>
+        <div class="selected-sparks">
+          <strong>Scene Sparks</strong>
+          <span>${escapeHtml(selectedSparkLabel())}</span>
+          <button id="chooseSparksButton">Choose Sparks</button>
+        </div>
+        <div class="prompt-tool compact-prompt">
+          <label class="field">Describe A Weird Scene
+            <textarea id="generatePromptInput" placeholder="A chalk outline, a saucer beam, a heart above two people, or whatever your brain throws at it.">${escapeHtml(state.scenePrompt)}</textarea>
+          </label>
+          ${renderPromptExamples()}
+          <div class="action-row compact">
+            <button id="interpretPromptButton">Use Description</button>
+            <span class="helper-text">${escapeHtml(promptAnalysisMessage())}</span>
+          </div>
+        </div>
+        <div class="action-row">
+          <button class="primary" id="generateButton" ${canGenerate ? "" : "disabled"}>Generate Skit</button>
+        </div>
+        <details class="action-details" id="postGenerateDetails">
+          <summary>Skit actions</summary>
+          <div class="action-grid" id="postGenerateActions">
+            <section class="mini-card">
+              <p class="mini-card-title">Save</p>
+              <div class="action-row compact">
+                <button id="saveFavouriteButton">Save Favourite</button>
+              </div>
+            </section>
+            <section class="mini-card">
+              <p class="mini-card-title">Copy</p>
+              <div class="action-row compact">
+                <button id="copyEpisodeButton">Copy Skit</button>
+                <button id="copyLineButton">Copy Best Line</button>
+              </div>
+            </section>
+            <section class="mini-card">
+              <p class="mini-card-title">Export</p>
+              <div class="action-row compact">
+                <button id="exportTxtButton">Export TXT</button>
+                <button id="exportHtmlButton">Export HTML</button>
+              </div>
+            </section>
+            <section class="mini-card">
+              <p class="mini-card-title">Replay</p>
+              <div class="action-row compact">
+                <button id="sameSeedButton">Generate Same Seed</button>
+              </div>
+            </section>
+            <section class="mini-card">
+              <p class="mini-card-title">Files</p>
+              <div class="action-row compact">
+                <button id="openExportsButton">Open Exports Folder</button>
+              </div>
+            </section>
+          </div>
+        </details>
+        <p class="helper-text">${canGenerate ? "Set the mood and cast, then generate." : "Finish setup before generating a polished skit."}</p>
+        <p class="message" id="generateMessage"></p>
+        <textarea id="copyFallback" class="copy-fallback" readonly hidden></textarea>
+        ${episode ? renderEpisode(episode) : `<div class="empty-state"><strong>Ready to roll.</strong><p>${escapeHtml(state.readiness.next_action)}</p></div>`}
+      </section>
+      <aside class="panel flat">
+        <h3>Why This Happened</h3>
+        ${episode ? `<div class="trace-list">${episode.trace_lines.map(escapeHtml).join("<br>")}</div>` : renderReadiness()}
+      </aside>
+    </div>
+  `;
+  el("weirdnessInput").addEventListener("input", () => {
+    el("weirdnessValue").textContent = el("weirdnessInput").value;
+  });
+  el("chooseSparksButton").addEventListener("click", () => navigate("sparks"));
+  el("generatePromptInput").addEventListener("input", () => {
+    state.scenePrompt = el("generatePromptInput").value;
+    state.promptAnalysis = null;
+  });
+  attachPromptExamples("generatePromptInput", "generateMessage", renderGenerate);
+  el("interpretPromptButton").addEventListener("click", async () => {
+    const used = await describePrompt("generatePromptInput", "generateMessage");
+    renderGenerate();
+    if (used) setMessage("generateMessage", promptAnalysisMessage());
+  });
+  el("generateButton").addEventListener("click", () => generateEpisode(false));
+  el("sameSeedButton").addEventListener("click", () => generateEpisode(true));
+  el("generateButton").disabled = !canGenerate;
+  el("postGenerateDetails").hidden = !hasEpisode;
+  el("saveFavouriteButton").hidden = !hasEpisode;
+  el("copyEpisodeButton").hidden = !hasEpisode;
+  el("copyLineButton").hidden = !hasEpisode;
+  el("exportTxtButton").hidden = !hasEpisode;
+  el("exportHtmlButton").hidden = !hasEpisode;
+  el("openExportsButton").hidden = !hasEpisode;
+  el("sameSeedButton").hidden = !hasEpisode;
+  el("saveFavouriteButton").addEventListener("click", saveFavourite);
+  el("copyEpisodeButton").addEventListener("click", () => copyText(state.currentEpisode?.script || ""));
+  el("copyLineButton").addEventListener("click", () => copyText(state.currentEpisode?.share_text || ""));
+  el("exportTxtButton").addEventListener("click", () => exportEpisode("txt"));
+  el("exportHtmlButton").addEventListener("click", () => exportEpisode("html"));
+  el("openExportsButton").addEventListener("click", openExports);
+}
+
+function canGenerateNow() {
+  return Boolean(state.readiness && state.readiness.can_generate);
+}
+
+function renderLibrary() {
+  const items = state.favourites.length
+    ? state.favourites.map((item) => `
+      <article class="library-item">
+        <strong>${escapeHtml(item.title)}</strong>
+        <p>${escapeHtml(item.mode || "")} | seed ${escapeHtml(item.seed || "")}</p>
+        <div class="button-row">
+          <button data-load-fav="${escapeHtml(item.id)}">Open</button>
+        </div>
+      </article>
+    `).join("")
+    : `<div class="empty-state"><strong>No favourites yet.</strong><p>Save a skit from Generate.</p></div>`;
+  el("pageRoot").innerHTML = `
+    <section class="panel">
+      <h2>Library</h2>
+      ${renderPageGuide("library")}
+      <div class="library-list">${items}</div>
+    </section>
+  `;
+  document.querySelectorAll("[data-load-fav]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const fav = state.favourites.find((item) => item.id === button.dataset.loadFav);
+      if (fav) {
+        state.currentEpisode = fav.episode;
+        navigate("generate");
+      }
+    });
+  });
+}
+
+function renderSetup() {
+  const doctor = state.doctor.doctor;
+  el("pageRoot").innerHTML = `
+    <div class="page-grid">
+      <section class="panel">
+        <h2>Local Setup</h2>
+        ${renderPageGuide("setup")}
+        <p class="data-path">${escapeHtml(doctor.data_dir)}</p>
+        <div class="pill-row">
+          <span class="pill">${escapeHtml(doctor.storage_mode)}</span>
+          <span class="pill">${escapeHtml(state.doctor.python)}</span>
+          <span class="pill">${doctor.favourite_count} favourites</span>
+        </div>
+        <div class="action-row">
+          <button id="openSetupExportsButton">Open Exports Folder</button>
+          <button class="danger" id="resetButton">Reset Default Show</button>
+        </div>
+        <p class="message" id="setupMessage"></p>
+      </section>
+      <aside class="panel flat">
+        <h3>Readiness</h3>
+        ${renderReadiness()}
+      </aside>
+    </div>
+  `;
+  el("openSetupExportsButton").addEventListener("click", openExports);
+  el("resetButton").addEventListener("click", resetShow);
+}
+
+function renderPageGuide(page) {
+  const note = PAGE_GUIDE_NOTES[page];
+  if (!note) {
+    return "";
+  }
+  const status = navPageStatus(page);
+  return `
+    <div class="page-coach-card ${escapeAttr(status)}">
+      <div class="page-coach-head">
+        ${dot(status)}
+        <strong>${escapeHtml(note.title)}</strong>
+        <span>${escapeHtml(labelStatus(status))}</span>
+      </div>
+      <p>${escapeHtml(note.text)}</p>
+    </div>
+  `;
+}
+
+function renderPromptExamples() {
+  return `
+    <div class="prompt-examples" aria-label="Example scene descriptions">
+      ${PROMPT_EXAMPLES.map((example) => `
+        <button class="prompt-example-button" data-prompt-example="${escapeAttr(example.prompt)}">${escapeHtml(example.label)}</button>
+      `).join("")}
+    </div>
+  `;
+}
+
+function renderEpisode(episode) {
+  return `
+    <section class="result-section">
+      <h2 class="episode-title">${escapeHtml(episode.title)}</h2>
+      <p class="episode-meta">${escapeHtml(episode.mode)} | seed ${escapeHtml(episode.seed)} | ${escapeHtml(episode.setting)}</p>
+      <div class="best-line">${escapeHtml(episode.best_line)}</div>
+      <pre class="script-output">${escapeHtml(episode.script)}</pre>
+    </section>
+  `;
+}
+
+function renderReadiness() {
+  const readiness = state.readiness;
+  return `
+    <div class="readiness-board">
+      <div class="traffic">
+        ${trafficStep("red", "Needs", "Missing basics", readiness.overall)}
+        ${trafficStep("amber", "Playable", "Good enough to generate", readiness.overall)}
+        ${trafficStep("green", "Ready", "Fuller skit fuel", readiness.overall)}
+      </div>
+      <div class="meter-grid">
+        ${meter("Cast", readiness.counts.characters, readiness.targets.characters)}
+        ${meter("Locations", readiness.counts.locations, readiness.targets.locations)}
+        ${meter("Props", readiness.counts.props, readiness.targets.props)}
+        ${meter("Jokes", readiness.counts.jokes, readiness.targets.jokes)}
+        ${meter("Rules", readiness.counts.rules, readiness.targets.rules)}
+        ${meter("Relationships", readiness.counts.relationships, readiness.targets.relationships)}
+        ${meter("Premises", readiness.counts.premises, readiness.targets.premises)}
+      </div>
+    </div>
+  `;
+}
+
+function trafficStep(status, title, text, active) {
+  return `
+    <div class="traffic-step ${status === active ? "active" : ""}">
+      ${dot(status)}
+      <strong>${title}</strong>
+      <span>${text}</span>
+    </div>
+  `;
+}
+
+function meter(label, count, target) {
+  return `<div class="meter"><strong>${count}/${target}</strong><span>${label}</span></div>`;
+}
+
+function field(label, id, value, placeholder = "") {
+  return `<label class="field">${label}<input id="${id}" value="${escapeAttr(value)}" placeholder="${escapeAttr(placeholder)}" /></label>`;
+}
+
+function textareaField(label, id, value) {
+  return `<label class="field">${label}<textarea id="${id}">${escapeHtml(value)}</textarea></label>`;
+}
+
+function selectField(label, id, value, options) {
+  return `
+    <label class="field">${label}
+      <select id="${id}">
+        ${options.map((option) => `<option ${option === value ? "selected" : ""}>${escapeHtml(option)}</option>`).join("")}
+      </select>
+    </label>
+  `;
+}
+
+async function saveBible() {
+  state.show.show_name = el("showName").value.trim() || "Untitled Sitcom";
+  state.show.sitcom_type = el("sitcomType").value;
+  state.show.tone = el("tone").value.trim() || "warm chaos";
+  state.show.core_rule = el("coreRule").value.trim();
+  state.show.recurring_premise = el("recurringPremise").value.trim();
+  await saveState("bibleMessage", "Bible saved.");
+}
+
+async function saveCharacters() {
+  state.show.characters = lines(el("charactersText").value).map((parts) => ({
+    name: parts[0] || "Unnamed",
+    role: parts[1] || "cast member",
+    want: parts[2] || "to get through the scene",
+    flaw: parts[3] || "chooses the wrong moment",
+    phrase: parts[4] || "Right.",
+    pressure: parts[5] || "being noticed",
+  }));
+  await saveState("charactersMessage", "Characters saved.");
+}
+
+async function saveLocations() {
+  state.show.locations = lines(el("locationsText").value).map((parts) => ({
+    name: parts[0] || "Unnamed Location",
+    texture: parts[1] || "a room with timing",
+    rule: parts[2] || "small problems get louder here",
+  }));
+  state.show.props = lines(el("propsText").value).map((parts) => ({
+    name: parts[0] || "Unnamed Prop",
+    joke: parts[1] || "it becomes important too quickly",
+  }));
+  await saveState("locationsMessage", "Places and props saved.");
+}
+
+async function saveJokes() {
+  state.show.jokes = lines(el("jokesText").value).map((parts) => ({
+    name: parts[0] || "Unnamed Joke",
+    text: parts[1] || "it comes back at the wrong time",
+  }));
+  state.show.rules = lines(el("rulesText").value).map((parts) => ({
+    name: parts[0] || "Unnamed Rule",
+    text: parts[1] || "the room takes it seriously",
+  }));
+  state.show.relationships = lines(el("relationshipsText").value).map((parts) => ({
+    from: parts[0] || "Someone",
+    to: parts[1] || "Someone Else",
+    dynamic: parts[2] || "they know exactly how to annoy each other",
+  }));
+  state.show.premises = lines(el("premisesText").value).map((parts) => ({
+    title: parts[0] || "Untitled Premise",
+    spark: parts[1] || "a normal job becomes everyone's problem",
+  }));
+  await saveState("jokesMessage", "Jokes, rules, relationships, and premises saved.");
+}
+
+async function saveState(messageId, message) {
+  const data = await api("/api/state", {
+    method: "POST",
+    body: JSON.stringify({ state: state.show }),
+  });
+  state.show = data.state;
+  state.readiness = data.readiness;
+  render();
+  const target = el(messageId);
+  if (target) target.textContent = message;
+}
+
+async function applyTemplate(templateId) {
+  const data = await api("/api/template", {
+    method: "POST",
+    body: JSON.stringify({ template_id: templateId }),
+  });
+  state.show = data.state;
+  state.readiness = data.readiness;
+  state.currentEpisode = null;
+  await refreshDoctor();
+  navigate("start", true);
+}
+
+async function generateEpisode(sameSeed) {
+  const previous = state.currentEpisode;
+  const seedValue = sameSeed && previous ? previous.seed : el("seedInput")?.value.trim();
+  const promptInput = el("generatePromptInput") || el("scenePromptInput");
+  if (promptInput) state.scenePrompt = promptInput.value.trim();
+  const payload = {
+    mode: el("modeSelect")?.value || "Random",
+    seed: seedValue || undefined,
+    cast_size: el("castSizeInput")?.value || 4,
+    weirdness: el("weirdnessInput")?.value || 58,
+    sparks: state.selectedSparks,
+    prompt: state.scenePrompt || undefined,
+  };
+  const data = await api("/api/generate", { method: "POST", body: JSON.stringify(payload) });
+  state.currentEpisode = data.episode;
+  state.promptAnalysis = data.episode.prompt_analysis || state.promptAnalysis;
+  state.scenePrompt = data.episode.scene_prompt || state.scenePrompt;
+  state.readiness = data.readiness;
+  state.page = "generate";
+  history.replaceState({}, "", "/generate");
+  render();
+  focusGeneratedEpisode();
+}
+
+async function describePrompt(inputId, messageId) {
+  const input = el(inputId);
+  if (input) state.scenePrompt = input.value.trim();
+  if (!state.scenePrompt) {
+    state.promptAnalysis = null;
+    setMessage(messageId, "Type a scene first.");
+    return false;
+  }
+  const data = await api("/api/describe", {
+    method: "POST",
+    body: JSON.stringify({ prompt: state.scenePrompt }),
+  });
+  state.promptAnalysis = data.analysis;
+  state.selectedSparks = data.analysis.spark_ids || [];
+  setMessage(messageId, promptAnalysisMessage());
+  return true;
+}
+
+async function runDemoMode(messageId) {
+  try {
+    setMessage(messageId, "Building a demo scene...");
+    if (!state.show.template_selected) {
+      const templateData = await api("/api/template", {
+        method: "POST",
+        body: JSON.stringify({ template_id: DEMO_TEMPLATE_ID }),
+      });
+      state.show = templateData.state;
+      state.readiness = templateData.readiness;
+    }
+
+    state.scenePrompt = DEMO_PROMPT;
+    const described = await api("/api/describe", {
+      method: "POST",
+      body: JSON.stringify({ prompt: state.scenePrompt }),
+    });
+    state.promptAnalysis = described.analysis;
+    state.selectedSparks = described.analysis.spark_ids || [];
+
+    const generated = await api("/api/generate", {
+      method: "POST",
+      body: JSON.stringify({
+        ...DEMO_OPTIONS,
+        prompt: state.scenePrompt,
+        sparks: state.selectedSparks,
+      }),
+    });
+    state.currentEpisode = generated.episode;
+    state.readiness = generated.readiness;
+    state.promptAnalysis = generated.episode.prompt_analysis || state.promptAnalysis;
+    state.scenePrompt = generated.episode.scene_prompt || state.scenePrompt;
+    state.page = "generate";
+    history.replaceState({}, "", "/generate");
+    render();
+    setMessage("generateMessage", "Demo scene generated. Change the prompt when you want your own one.");
+  } catch (error) {
+    setMessage(messageId, error.message || "Demo could not run.");
+  }
+}
+
+function attachPromptExamples(inputId, messageId, afterUse) {
+  document.querySelectorAll("[data-prompt-example]").forEach((button) => {
+    button.addEventListener("click", async () => {
+      state.scenePrompt = button.dataset.promptExample || "";
+      const input = el(inputId);
+      if (input) {
+        input.value = state.scenePrompt;
+      }
+      await describePrompt(inputId, messageId);
+      if (afterUse) afterUse();
+    });
+  });
+}
+
+async function refreshDoctor() {
+  const doctorData = await api("/api/doctor");
+  state.doctor = doctorData;
+}
+
+async function saveFavourite() {
+  if (!state.currentEpisode) {
+    setMessage("generateMessage", "Generate a skit first.");
+    return;
+  }
+  const data = await api("/api/favourites", {
+    method: "POST",
+    body: JSON.stringify({ episode: state.currentEpisode }),
+  });
+  state.favourites = data.favourites;
+  setMessage("generateMessage", "Saved to Library.");
+}
+
+async function exportEpisode(format) {
+  if (!state.currentEpisode) {
+    setMessage("generateMessage", "Generate a skit first.");
+    return;
+  }
+  const data = await api("/api/export", {
+    method: "POST",
+    body: JSON.stringify({ episode: state.currentEpisode, format }),
+  });
+  setMessage("generateMessage", `Exported ${data.export.format.toUpperCase()}: ${data.export.path}`);
+}
+
+async function openExports() {
+  const data = await api("/api/open-exports", { method: "POST", body: JSON.stringify({}) });
+  const message = data.export_folder.opened
+    ? `Opened exports: ${data.export_folder.path}`
+    : `Exports folder: ${data.export_folder.path}`;
+  setMessage("generateMessage", message);
+  setMessage("setupMessage", message);
+}
+
+async function resetShow() {
+  const data = await api("/api/state", { method: "POST", body: JSON.stringify({ reset: true }) });
+  state.show = data.state;
+  state.readiness = data.readiness;
+  state.currentEpisode = null;
+  state.page = "templates";
+  history.replaceState({}, "", "/templates");
+  render();
+  setMessage("setupMessage", "Default show restored.");
+}
+
+function toggleSpark(sparkId) {
+  if (!sparkId) return;
+  if (state.selectedSparks.includes(sparkId)) {
+    state.selectedSparks = state.selectedSparks.filter((id) => id !== sparkId);
+  } else if (state.selectedSparks.length < 3) {
+    state.selectedSparks = [...state.selectedSparks, sparkId];
+  }
+  state.promptAnalysis = null;
+  renderSparks();
+}
+
+function selectedSparkLabel() {
+  if (!state.selectedSparks.length) return "No sparks selected";
+  return state.selectedSparks
+    .map((id) => state.sparks.find((spark) => spark.id === id)?.name || id)
+    .join(" + ");
+}
+
+function promptAnalysisMessage() {
+  const prompt = String(state.scenePrompt || "").trim();
+  if (state.promptAnalysis && state.promptAnalysis.summary) {
+    return state.promptAnalysis.summary;
+  }
+  if (prompt) {
+    return "Description ready. Use Description to turn it into sparks.";
+  }
+  return "Try: saucer beam, police tape, chalk outline, heart moment, missing prop, guest, secret, or bad plan.";
+}
+
+function sparkIconClass(id) {
+  if (id === "ufo_beam") return "ufo-mini";
+  if (id === "police_tape") return "mystery-mini";
+  if (id === "heart_moment") return "heart-mini";
+  if (id === "missing_object") return "object-mini";
+  if (id === "guest_arrives") return "guest-mini";
+  if (id === "bad_plan") return "plan-mini";
+  if (id === "rivalry") return "rivalry-mini";
+  return "secret-mini";
+}
+
+async function copyText(text) {
+  if (!text) {
+    setMessage("generateMessage", "Nothing to copy yet.");
+    return;
+  }
+  try {
+    await navigator.clipboard.writeText(text);
+    setMessage("generateMessage", "Copied.");
+  } catch {
+    const fallback = el("copyFallback");
+    fallback.hidden = false;
+    fallback.value = text;
+    fallback.focus();
+    fallback.select();
+    document.execCommand("copy");
+    setMessage("generateMessage", "Copied. If the browser blocked it, the text is selected below.");
+  }
+}
+
+function lines(text) {
+  return String(text || "")
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => line.split("|").map((part) => part.trim()));
+}
+
+function setMessage(id, text) {
+  const target = el(id);
+  if (target) target.textContent = text;
+}
+
+function focusPageTop() {
+  window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+  const root = el("pageRoot");
+  if (root) {
+    root.focus({ preventScroll: true });
+  }
+}
+
+function focusGeneratedEpisode() {
+  requestAnimationFrame(() => {
+    const result = document.querySelector(".result-section");
+    if (result) {
+      result.scrollIntoView({ block: "start", behavior: "auto" });
+      return;
+    }
+    focusPageTop();
+  });
+}
+
+function dot(status) {
+  return `<span class="status-dot ${escapeHtml(status)}"></span>`;
+}
+
+function labelStatus(status) {
+  if (status === "green") return "Green";
+  if (status === "amber") return "Amber";
+  return "Red";
+}
+
+function clean(value) {
+  return String(value || "").replace(/\|/g, "/");
+}
+
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+function escapeAttr(value) {
+  return escapeHtml(value);
+}
+
+document.addEventListener("click", (event) => {
+  const link = event.target.closest("[data-link]");
+  if (!link) return;
+  event.preventDefault();
+  navigate(link.dataset.page || pageFromPath(new URL(link.href).pathname));
+});
+
+window.addEventListener("popstate", () => {
+  state.page = pageFromPath(location.pathname);
+  render();
+});
+
+loadApp().catch((error) => {
+  el("pageRoot").innerHTML = `<section class="panel"><h2>Could not start ${APP_NAME}</h2><p>${escapeHtml(error.message)}</p></section>`;
+});
