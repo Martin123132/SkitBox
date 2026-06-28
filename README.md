@@ -1,32 +1,64 @@
-﻿# SkitBox
+# SkitBox
 
-SkitBox is a local-first skit workshop for tiny sitcoms from weird
-ideas. Build a show bible, add cast, locations, props, running jokes, and
-rules, then generate repeatable skits with no API keys, cloud accounts, npm,
-or build step.
+**Tiny sitcoms from weird ideas. No API keys. No accounts. No cloud bill.**
 
-The app teaches by state: separate pages, red/amber/green readiness lights,
-starter templates, clickable scene sparks, a local "Describe A Weird Scene"
-translator, and clear next actions.
+SkitBox is a local-first Windows app for turning odd scene ideas into repeatable
+little sitcom scripts. Give it a prompt like "a saucer beam, police tape, and a
+heart above two people", press a button, and it builds a structured skit with
+cast, setting, running joke, story beats, and a "why this happened" trace.
 
-## Start On Windows
+![SkitBox generator screenshot](docs/visuals/skitbox-generator.png)
 
-1. Double-click `START_SkitBox_WINDOWS.bat`.
-2. Your browser opens.
-3. Press `Show Me A Funny One` for an instant demo, or follow the 7-step flow.
-4. Pick a starting sitcom template.
-5. Choose an example prompt, type your own weird scene, or pick 1-3 scene sparks.
-6. Press `Use Description`, then `Generate Skit`.
+## Download And Run
 
-The launcher prefers `D:\SkitBoxData` and `D:\Temp` when D: is available,
-then falls back to `user_data` beside the app. You can force any folder with
-`SKITBOX_HOME`.
+1. Go to the [latest release](https://github.com/Martin123132/SkitBox/releases/latest).
+2. Download `SkitBox-v0.2.0.zip`.
+3. Unzip it somewhere easy to find.
+4. Double-click `START_SkitBox_WINDOWS.bat`.
+5. When the browser opens, press `Show Me A Funny One`.
 
-To close a running local server, double-click `STOP_SkitBox_WINDOWS.bat`.
+SkitBox needs Python 3.10 or newer. It does not need npm, Ollama, OpenAI,
+Claude, API keys, login, or an installer.
 
-## D-Drive Development
+To stop it, close the server window or double-click `STOP_SkitBox_WINDOWS.bat`.
 
-Use D-drive runtime folders during development:
+## What It Feels Like
+
+SkitBox teaches through the app itself. The pages are split up, the side menu
+uses red/amber/green readiness lights, and the generator always shows the next
+useful step.
+
+![SkitBox guide screenshot](docs/visuals/skitbox-guide.png)
+
+The default world is a shared-house sitcom setup, but the app includes editors
+for the show bible, cast, locations, props, jokes, rules, relationships, and
+scene sparks.
+
+On a phone-sized browser, the same flow stays readable:
+
+![SkitBox mobile screenshot](docs/visuals/skitbox-mobile.png)
+
+## What You Can Do
+
+- Generate a skit from a seed, mode, cast size, and weirdness level.
+- Type a strange scene description and let SkitBox turn it into scene sparks.
+- Save favourite skits locally.
+- Export TXT or HTML.
+- Open the exports folder from the app.
+- Reset back to the built-in starter show.
+
+Everything is deterministic and local. The same seed and settings make the same
+skit again.
+
+## Where Data Goes
+
+The Windows launcher prefers D-drive storage when available:
+
+```text
+D:\SkitBoxData
+```
+
+For development or portable runs, set `SKITBOX_HOME`:
 
 ```powershell
 New-Item -ItemType Directory -Force -Path D:\Temp, D:\SkitBoxData | Out-Null
@@ -36,13 +68,9 @@ $env:SKITBOX_HOME = "D:\SkitBoxData"
 python -m sitcom_engine_app.app
 ```
 
-Close it after testing:
+SkitBox does not store runtime data in the Git-tracked app folders.
 
-```powershell
-powershell -ExecutionPolicy Bypass -File scripts\stop_dev_processes.ps1
-```
-
-## Checks
+## Developer Checks
 
 ```powershell
 New-Item -ItemType Directory -Force -Path D:\Temp, D:\SkitBoxData | Out-Null
@@ -52,11 +80,10 @@ $env:SKITBOX_HOME = "D:\SkitBoxData"
 python -m unittest discover -s tests
 python -m compileall sitcom_engine_app tests scripts
 python scripts\sample_episodes.py --count 5
-python scripts\sample_episodes.py --count 3 --prompt "A saucer beam, police tape, and a heart above two people."
 python -m sitcom_engine_app.app --doctor
 ```
 
-## Release ZIP
+Build and verify a release ZIP:
 
 ```powershell
 New-Item -ItemType Directory -Force -Path D:\Temp, D:\SkitBoxData, D:\SkitBoxVerifyWork | Out-Null
@@ -68,12 +95,12 @@ $zip = (Get-ChildItem dist\SkitBox-v*.zip | Sort-Object LastWriteTime -Descendin
 powershell -ExecutionPolicy Bypass -File scripts\verify_release_zip.ps1 -ZipPath $zip -WorkRoot D:\SkitBoxVerifyWork
 ```
 
-## Design Promise
+## Feedback
 
-The app should teach through state: traffic lights, counts, next actions, and
-separate pages. Demo Mode and prompt examples should help new users see the
-shape before they have to invent anything. It should never feel like a cramped
-control panel.
+If you try it, leave first-run feedback in
+[Issue #1](https://github.com/Martin123132/SkitBox/issues/1). The most useful
+notes are whether it opened, how long it took to get your first skit, and what
+line made you laugh.
 
 ## License
 
