@@ -9,14 +9,16 @@ jobs:
     runs-on: windows-latest
     env:
       SKITBOX_DISABLE_OPEN: "1"
-      SKITBOX_HOME: ${{ runner.temp }}\SkitBoxData
-      TEMP: ${{ runner.temp }}
-      TMP: ${{ runner.temp }}
+      SKITBOX_HOME: "${{ runner.temp }}\\SkitBoxData"
+      TEMP: "${{ runner.temp }}"
+      TMP: "${{ runner.temp }}"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.10"
+      - name: Prepare runtime folders
+        run: New-Item -ItemType Directory -Force -Path "$env:SKITBOX_HOME", "$env:TEMP" | Out-Null
       - name: Unit tests
         run: python -m unittest discover -s tests
       - name: Compile check
