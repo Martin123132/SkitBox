@@ -1,0 +1,11 @@
+Memory proof: Living Room misunderstanding into bad plan
+
+Command:
+python scripts\sample_memory.py --room living-room --first-seed 44401 --second-seed 44402 --first-mode "Misunderstanding" --second-mode "Bad Plan"
+
+Expected anchors:
+- first scene room is Living Room
+- canon incident summary is printed between scenes
+- second scene contains Previously In This Room
+- second scene trace contains Memory read:
+

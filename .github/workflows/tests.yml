@@ -1,0 +1,30 @@
+name: tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  unit:
+    runs-on: windows-latest
+    env:
+      SKITBOX_DISABLE_OPEN: "1"
+      SKITBOX_HOME: ${{ runner.temp }}\SkitBoxData
+      TEMP: ${{ runner.temp }}
+      TMP: ${{ runner.temp }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+      - name: Unit tests
+        run: python -m unittest discover -s tests
+      - name: Compile check
+        run: python -m compileall sitcom_engine_app tests scripts
+      - name: Sample generation
+        run: |
+          python scripts\sample_episodes.py --count 2 --room kitchen
+          python scripts\sample_memory.py --room kitchen
+      - name: Doctor check
+        run: python -m sitcom_engine_app.app --doctor
+

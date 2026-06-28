@@ -1,0 +1,11 @@
+Memory proof: Landing bottle episode into rivalry
+
+Command:
+python scripts\sample_memory.py --room landing --first-seed 45401 --second-seed 45402 --first-mode "Bottle Episode" --second-mode "Rivalry"
+
+Expected anchors:
+- first scene room is Landing
+- canon incident summary is printed between scenes
+- second scene contains Previously In This Room
+- second scene trace contains Memory read:
+

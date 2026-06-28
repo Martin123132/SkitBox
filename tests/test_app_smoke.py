@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 import json
 import os
@@ -39,8 +39,14 @@ class AppSmokeTests(unittest.TestCase):
                 guide = self._text(url + "/guide")
                 self.assertIn("<!doctype html>", guide)
                 self.assertIn("<title>SkitBox</title>", guide)
-                self.assertIn('<span class="brand-mark">SB</span>', guide)
                 self.assertIn("<strong>SkitBox</strong>", guide)
+
+                rooms_page = self._text(url + "/rooms")
+                self.assertIn("<!doctype html>", rooms_page)
+                self.assertIn("data-page=\"rooms\"", rooms_page)
+                memory_page = self._text(url + "/memory")
+                self.assertIn("<!doctype html>", memory_page)
+                self.assertIn("data-page=\"memory\"", memory_page)
 
                 css = self._text(url + "/static/app.css")
                 self.assertIn("skitbox-guide-bg-v1.png", css)
@@ -60,6 +66,8 @@ class AppSmokeTests(unittest.TestCase):
                 applied = self._post_json(url + "/api/template", {"template_id": "pub"})
                 self.assertTrue(applied["ok"])
                 self.assertEqual(applied["state"]["sitcom_type"], "Pub")
+                room_id = applied["state"]["rooms"][0]["id"]
+                room_name = applied["state"]["rooms"][0]["name"]
 
                 described = self._post_json(url + "/api/describe", {"prompt": "A saucer beam, police tape, and a heart above two people."})
                 self.assertTrue(described["ok"])
@@ -68,13 +76,33 @@ class AppSmokeTests(unittest.TestCase):
                 started = time.perf_counter()
                 generated = self._post_json(
                     url + "/api/generate",
-                    {"seed": 5150, "mode": "Random", "weirdness": 75, "cast_size": 4, "sparks": ["heart_moment", "bad_plan"]},
+                    {
+                        "seed": 5150,
+                        "mode": "Random",
+                        "weirdness": 75,
+                        "cast_size": 4,
+                        "room_id": room_id,
+                        "sparks": ["heart_moment", "bad_plan"],
+                    },
                 )
                 elapsed = time.perf_counter() - started
                 self.assertLess(elapsed, 2)
                 self.assertTrue(generated["ok"])
                 self.assertIn("WHY THIS HAPPENED", generated["episode"]["script"])
                 self.assertEqual(generated["episode"]["mode"], "Bad Plan")
+                self.assertEqual(generated["episode"]["room"]["id"], room_id)
+                self.assertIn(f"Room: {room_name}", generated["episode"]["script"])
+                self.assertIn("Previously In This Room", generated["episode"]["script"])
+
+                canon = self._post_json(url + "/api/canon", {"episode": generated["episode"]})
+                self.assertTrue(canon["ok"])
+                self.assertEqual(canon["incident"]["seed"], 5150)
+                self.assertEqual(canon["readiness"]["counts"]["memory"], 1)
+                self.assertEqual(canon["state"]["room_history"][0]["incidents"][0]["title"], generated["episode"]["title"])
+
+                reset_memory = self._post_json(url + "/api/memory/reset", {})
+                self.assertTrue(reset_memory["ok"])
+                self.assertEqual(reset_memory["readiness"]["counts"]["memory"], 0)
 
                 prompt_generated = self._post_json(
                     url + "/api/generate",

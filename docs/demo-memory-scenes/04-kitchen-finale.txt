@@ -1,0 +1,11 @@
+Memory proof: Kitchen finale chaos into cold open
+
+Command:
+python scripts\sample_memory.py --room kitchen --first-seed 43401 --second-seed 43402 --first-mode "Finale Chaos" --second-mode "Cold Open" --weirdness 84
+
+Expected anchors:
+- first scene room is Kitchen
+- canon incident summary is printed between scenes
+- second scene contains Previously In This Room
+- second scene trace contains Memory read:
+

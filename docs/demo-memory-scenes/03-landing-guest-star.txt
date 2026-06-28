@@ -1,0 +1,11 @@
+Memory proof: Landing guest star into secret revealed
+
+Command:
+python scripts\sample_memory.py --room landing --first-seed 42401 --second-seed 42402 --first-mode "Guest Star" --second-mode "Secret Revealed"
+
+Expected anchors:
+- first scene room is Landing
+- canon incident summary is printed between scenes
+- second scene contains Previously In This Room
+- second scene trace contains Memory read:
+

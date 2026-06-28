@@ -1,0 +1,17 @@
+Demo: Kitchen Prompt Sparks
+
+Seed: 20260627
+Mode: Random
+Weirdness: 72
+Cast size: 4
+Room: kitchen
+Prompt: A saucer beam, police tape, and a heart above two people.
+
+Command:
+python scripts\sample_episodes.py --seed 20260627 --mode Random --weirdness 72 --cast-size 4 --room kitchen --prompt "A saucer beam, police tape, and a heart above two people."
+
+Expected proof:
+- Script includes "Room: Kitchen".
+- Scene Sparks includes UFO Beam, Police Tape, and Heart Moment.
+- Prompt Read explains the detected sparks.
+

@@ -1,0 +1,16 @@
+Demo: Landing Guest Star
+
+Seed: 404
+Mode: Guest Star
+Weirdness: 50
+Cast size: 3
+Room: landing
+
+Command:
+python scripts\sample_episodes.py --seed 404 --mode "Guest Star" --weirdness 50 --cast-size 3 --room landing
+
+Expected proof:
+- Fourth generated scene includes "Room: Landing".
+- The Landing description anchors the scene around stairs, laundry, and overheard evidence.
+- Trace output names the Landing mood.
+

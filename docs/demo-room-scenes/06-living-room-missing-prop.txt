@@ -1,0 +1,17 @@
+Demo: Living Room Missing Prop
+
+Seed: 5150
+Mode: Random
+Weirdness: 75
+Cast size: 4
+Room: living-room
+Prompt: The second remote goes missing and the sofa starts acting like a court.
+
+Command:
+python scripts\sample_episodes.py --seed 5150 --mode Random --weirdness 75 --cast-size 4 --room living-room --prompt "The second remote goes missing and the sofa starts acting like a court."
+
+Expected proof:
+- Script includes "Room: Living Room".
+- The prompt should select missing-object or rivalry-style energy.
+- The room map should make the sofa and remote feel like the anchor, not generic scenery.
+

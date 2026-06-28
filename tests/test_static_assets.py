@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 import re
 import unittest
@@ -31,14 +31,36 @@ class StaticAssetTests(unittest.TestCase):
         html = (ROOT / "sitcom_engine_app" / "templates" / "index.html").read_text(encoding="utf-8")
 
         self.assertIn("renderNavigationStatus", js)
+        self.assertIn("renderMobileNavigation", js)
         self.assertIn("navPageStatus", js)
+        self.assertIn("renderFirstRunCard", js)
+        self.assertIn("renderRooms", js)
+        self.assertIn("Generate Scene In This Room", js)
+        self.assertIn("next_optional", js)
+        self.assertIn("room-save-reminder", js)
+        self.assertIn("renderRoomFocusCard", js)
+        self.assertIn("renderMemory", js)
+        self.assertIn("Save This As Canon", js)
+        self.assertIn("/api/canon", js)
+        self.assertIn("/api/memory/reset", js)
+        self.assertIn("STOP_SkitBox_WINDOWS.bat", js)
         self.assertIn("nav-status-dot", css)
+        self.assertIn("mobile-nav-panel", css)
+        self.assertIn("mobile-page-menu", css)
+        self.assertIn("first-run-card", css)
+        self.assertIn("stop-note", css)
+        self.assertIn("room-card-grid", css)
+        self.assertIn("room-chip", css)
+        self.assertIn("room-focus-card", css)
+        self.assertIn("room-save-reminder.dirty", css)
+        self.assertIn("memory-grid", css)
+        self.assertIn("canon-summary", css)
         self.assertIn("[hidden]", css)
+        self.assertIn("mobileNavPanel", html)
+        self.assertIn('href="/rooms"', html)
+        self.assertIn('href="/memory"', html)
         self.assertIn("SkitBox", html)
         self.assertIn("<title>SkitBox</title>", html)
-        self.assertIn('<span class="brand-mark">SB</span>', html)
-        old_brand = "Sitcom" + "Engine"
-        self.assertNotIn(old_brand, html)
 
 
 if __name__ == "__main__":

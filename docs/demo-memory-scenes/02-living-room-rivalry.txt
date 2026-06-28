@@ -1,0 +1,11 @@
+Memory proof: Living Room rivalry into bottle episode
+
+Command:
+python scripts\sample_memory.py --room living-room --first-seed 41401 --second-seed 41402 --first-mode "Rivalry" --second-mode "Bottle Episode"
+
+Expected anchors:
+- first scene room is Living Room
+- canon incident summary is printed between scenes
+- second scene contains Previously In This Room
+- second scene trace contains Memory read:
+

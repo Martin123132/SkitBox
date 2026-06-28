@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 import argparse
 from pathlib import Path
@@ -25,12 +25,22 @@ SAMPLES = [
 def main() -> None:
     parser = argparse.ArgumentParser(description="Generate deterministic SkitBox sample skits.")
     parser.add_argument("--count", type=int, default=5)
+    parser.add_argument("--seed", type=int, default=None, help="Generate one exact seed instead of the built-in sample batch.")
+    parser.add_argument("--mode", default="Random", help="Mode to use with --seed.")
+    parser.add_argument("--weirdness", type=int, default=58, help="Weirdness to use with --seed.")
+    parser.add_argument("--cast-size", type=int, default=4, help="Cast size to use with --seed.")
+    parser.add_argument("--room", default="", help="Optional room id or name, such as kitchen or living-room.")
     parser.add_argument("--prompt", default="", help="Optional weird scene description to translate into sparks.")
     args = parser.parse_args()
 
     state = load_default_state()
-    for seed, mode, weirdness, cast_size in SAMPLES[: max(1, args.count)]:
+    samples = SAMPLES[: max(1, args.count)]
+    if args.seed is not None:
+        samples = [(args.seed, args.mode, args.weirdness, args.cast_size)]
+    for seed, mode, weirdness, cast_size in samples:
         options = {"seed": seed, "mode": mode, "weirdness": weirdness, "cast_size": cast_size}
+        if args.room:
+            options["room_id"] = args.room
         if args.prompt:
             options["mode"] = "Random"
             options["prompt"] = args.prompt

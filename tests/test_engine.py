@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 import unittest
 
 from sitcom_engine_app.engine import analyze_state, describe_scene_prompt, generate_episode
@@ -53,6 +54,14 @@ class EngineTests(unittest.TestCase):
         self.assertEqual(thin_ready["overall"], "red")
         self.assertEqual(thin_ready["next_page"], "characters")
 
+    def test_unselected_default_template_is_optional_when_ready(self) -> None:
+        state = load_default_state()
+        ready = analyze_state(state)
+        self.assertEqual(ready["overall"], "green")
+        self.assertEqual(ready["next_page"], "templates")
+        self.assertTrue(ready["next_optional"])
+        self.assertIn("starter show", ready["next_action"])
+
     def test_scene_sparks_drive_episode(self) -> None:
         episode = generate_episode(
             self.state,
@@ -61,7 +70,7 @@ class EngineTests(unittest.TestCase):
         self.assertEqual(episode["mode"], "Misunderstanding")
         self.assertEqual([spark["id"] for spark in episode["scene_sparks"]], ["ufo_beam", "police_tape"])
         self.assertIn("UFO Beam", episode["script"])
-        self.assertIn("Police Tape", episode["trace_lines"][1])
+        self.assertTrue(any("Police Tape" in line for line in episode["trace_lines"]))
 
     def test_scene_prompt_detects_sparks(self) -> None:
         analysis = describe_scene_prompt(
@@ -85,6 +94,62 @@ class EngineTests(unittest.TestCase):
         self.assertIn("Scene Prompt:", episode["script"])
         self.assertIn("Prompt Read:", episode["script"])
         self.assertTrue(any(line.startswith("Prompt read:") for line in episode["trace_lines"]))
+
+    def test_room_selection_is_deterministic_and_visible(self) -> None:
+        options = {"seed": 30303, "mode": "Bad Plan", "room_id": "kitchen", "cast_size": 4}
+        first = generate_episode(self.state, options)
+        second = generate_episode(self.state, options)
+        self.assertEqual(first["script"], second["script"])
+        self.assertEqual(first["room"]["id"], "kitchen")
+        self.assertIn("Room: Kitchen", first["script"])
+        self.assertTrue(any("Room Kitchen steered" in line for line in first["trace_lines"]))
+
+    def test_different_room_changes_episode_anchor(self) -> None:
+        kitchen = generate_episode(self.state, {"seed": 30303, "mode": "Bad Plan", "room_id": "kitchen"})
+        living_room = generate_episode(self.state, {"seed": 30303, "mode": "Bad Plan", "room_id": "living-room"})
+        self.assertNotEqual(kitchen["script"], living_room["script"])
+        self.assertEqual(kitchen["room"]["name"], "Kitchen")
+        self.assertEqual(living_room["room"]["name"], "Living Room")
+
+    def test_memory_context_is_visible_and_generation_does_not_mutate_state(self) -> None:
+        room = self.state["rooms"][0]
+        character = self.state["characters"][0]["name"]
+        self.state["room_history"] = [
+            {
+                "room_id": room["id"],
+                "room_name": room["name"],
+                "incidents": [
+                    {
+                        "title": "The Chair Situation",
+                        "mode": "Bad Plan",
+                        "seed": 1001,
+                        "summary": "The room still remembers the chair being declared a witness.",
+                        "cast": [character],
+                    }
+                ],
+            }
+        ]
+        self.state["character_states"] = [
+            {
+                "name": character,
+                "mood": "suspicious",
+                "pressure": "the chair witness",
+                "last_incident": "The chair was declared a witness.",
+                "relationship_nudge": "everyone knows too much",
+                "canon_count": 1,
+            }
+        ]
+        before = copy.deepcopy(self.state["room_history"])
+
+        episode = generate_episode(self.state, {"seed": 40404, "mode": "Bad Plan", "room_id": room["id"]})
+
+        self.assertEqual(self.state["room_history"], before)
+        self.assertTrue(episode["memory_context"]["has_memory"])
+        self.assertIn("Previously In This Room", episode["script"])
+        self.assertIn("chair being declared a witness", episode["script"])
+        self.assertTrue(any(line.startswith("Memory read:") for line in episode["trace_lines"]))
+        self.assertIn("canon_candidate", episode)
+        self.assertIn(room["name"], episode["canon_candidate"]["room_name"])
 
 
 if __name__ == "__main__":

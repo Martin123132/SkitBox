@@ -1,0 +1,16 @@
+Demo: Kitchen Misunderstanding
+
+Seed: 202
+Mode: Misunderstanding
+Weirdness: 72
+Cast size: 4
+Room: kitchen
+
+Command:
+python scripts\sample_episodes.py --seed 202 --mode "Misunderstanding" --weirdness 72 --cast-size 4 --room kitchen
+
+Expected proof:
+- Second generated scene includes "Room: Kitchen".
+- The Good Mug, The Kettle Knows, Fridge Law, or Kitchen memory can steer the scene.
+- WHY THIS HAPPENED includes room memory.
+

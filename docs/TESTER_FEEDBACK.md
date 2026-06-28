@@ -1,4 +1,4 @@
-﻿# SkitBox Tester Feedback
+# SkitBox Tester Feedback
 
 Copy this section once per tester run.
 
@@ -29,6 +29,11 @@ Copy this section once per tester run.
 
 - Generated a skit:
 - Used Demo Mode:
+- Edited or selected a room:
+- Generated from a room:
+- Saved current scene as canon:
+- Saw memory affect a later scene:
+- Reset canon memory:
 - Used an example prompt:
 - Saved favourite:
 - Exported TXT:

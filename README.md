@@ -12,7 +12,7 @@ cast, setting, running joke, story beats, and a "why this happened" trace.
 ## Download And Run
 
 1. Go to the [latest release](https://github.com/Martin123132/SkitBox/releases/latest).
-2. Download `SkitBox-v0.2.0.zip`.
+2. Download the newest `SkitBox-v...zip`.
 3. Unzip it somewhere easy to find.
 4. Double-click `START_SkitBox_WINDOWS.bat`.
 5. When the browser opens, press `Show Me A Funny One`.
@@ -31,8 +31,8 @@ useful step.
 ![SkitBox guide screenshot](docs/visuals/skitbox-guide.png)
 
 The default world is a shared-house sitcom setup, but the app includes editors
-for the show bible, cast, locations, props, jokes, rules, relationships, and
-scene sparks.
+for the show bible, cast, locations, room maps, props, jokes, rules,
+relationships, canon memory, and scene sparks.
 
 On a phone-sized browser, the same flow stays readable:
 
@@ -41,7 +41,11 @@ On a phone-sized browser, the same flow stays readable:
 ## What You Can Do
 
 - Generate a skit from a seed, mode, cast size, and weirdness level.
+- Generate from a selected room so the setting, props, cast, and memory anchor
+  the scene.
 - Type a strange scene description and let SkitBox turn it into scene sparks.
+- Save a keeper as canon so future scenes can remember what happened.
+- Reset canon memory without deleting your show, favourites, or exports.
 - Save favourite skits locally.
 - Export TXT or HTML.
 - Open the exports folder from the app.
@@ -80,6 +84,8 @@ $env:SKITBOX_HOME = "D:\SkitBoxData"
 python -m unittest discover -s tests
 python -m compileall sitcom_engine_app tests scripts
 python scripts\sample_episodes.py --count 5
+python scripts\sample_episodes.py --count 3 --room kitchen
+python scripts\sample_memory.py --room kitchen
 python -m sitcom_engine_app.app --doctor
 ```
 

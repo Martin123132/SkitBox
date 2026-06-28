@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 import html
 import random
@@ -307,31 +307,37 @@ def analyze_state(state: dict[str, Any]) -> dict[str, Any]:
         "characters": len(_items(state, "characters")),
         "locations": len(_items(state, "locations")),
         "props": len(_items(state, "props")),
+        "rooms": len(_items(state, "rooms")),
         "jokes": len(_items(state, "jokes")),
         "rules": len(_items(state, "rules")),
         "relationships": len(_items(state, "relationships")),
         "premises": len(_items(state, "premises")),
+        "memory": _memory_count(state),
     }
-    targets = {
+    required_targets = {
         "characters": 3,
         "locations": 1,
         "props": 1,
+        "rooms": 1,
         "jokes": 2,
         "rules": 1,
         "relationships": 1,
         "premises": 1,
     }
+    targets = {**required_targets, "memory": 1}
     page_status = {
         "templates": "green" if state.get("template_selected") else "amber",
         "bible": _status(1 if state.get("show_name") and state.get("core_rule") else 0, 1, 1),
-        "characters": _status(counts["characters"], 2, targets["characters"]),
-        "locations": _status(counts["locations"] + counts["props"], 2, targets["locations"] + targets["props"]),
-        "jokes": _status(counts["jokes"] + counts["rules"], 2, targets["jokes"] + targets["rules"]),
+        "characters": _status(counts["characters"], 2, required_targets["characters"]),
+        "locations": _status(counts["locations"] + counts["props"], 2, required_targets["locations"] + required_targets["props"]),
+        "rooms": _status(counts["rooms"], 1, required_targets["rooms"]),
+        "memory": "green" if counts["memory"] else "amber",
+        "jokes": _status(counts["jokes"] + counts["rules"], 2, required_targets["jokes"] + required_targets["rules"]),
         "sparks": "green",
         "generate": "green",
     }
     blockers = []
-    for key, target in targets.items():
+    for key, target in required_targets.items():
         if counts[key] < target:
             blockers.append((key, target - counts[key]))
     if counts["characters"] < 2 or counts["locations"] < 1 or counts["jokes"] < 1:
@@ -343,8 +349,13 @@ def analyze_state(state: dict[str, Any]) -> dict[str, Any]:
 
     next_action = "Generate a skit"
     next_page = "generate"
+    next_optional = False
     if not state.get("template_selected"):
-        next_action = "Choose a starting sitcom"
+        if overall in {"amber", "green"}:
+            next_action = "Pick a template, or generate with this starter show"
+            next_optional = True
+        else:
+            next_action = "Choose a starting sitcom"
         next_page = "templates"
     elif blockers:
         key, missing = blockers[0]
@@ -354,6 +365,7 @@ def analyze_state(state: dict[str, Any]) -> dict[str, Any]:
             "characters": "characters",
             "locations": "locations",
             "props": "locations",
+            "rooms": "rooms",
             "jokes": "jokes",
             "rules": "jokes",
             "relationships": "jokes",
@@ -367,6 +379,7 @@ def analyze_state(state: dict[str, Any]) -> dict[str, Any]:
         "pages": page_status,
         "next_action": next_action,
         "next_page": next_page,
+        "next_optional": next_optional,
         "can_generate": overall in {"amber", "green"},
     }
 
@@ -406,12 +419,20 @@ def generate_episode(state: dict[str, Any], options: dict[str, Any] | None = Non
     rules = _items(state, "rules") or [_fallback_rule()]
     relationships = _items(state, "relationships") or [_fallback_relationship(characters)]
     premises = _items(state, "premises") or [_fallback_premise()]
+    room = _select_room(state, options)
 
-    cast = _pick_many(rng, characters, cast_size)
-    location = rng.choice(locations)
-    prop = rng.choice(props)
-    joke = rng.choice(jokes)
-    rule = rng.choice(rules)
+    cast = _room_cast(rng, characters, room, cast_size)
+    memory_context = _memory_context(state, room, cast)
+    location = _named_item(locations, _safe_get(room, "location", "")) if room else None
+    if location is None:
+        location = rng.choice(locations)
+    prop = _room_choice(rng, props, room, "props") or rng.choice(props)
+    joke = _room_choice(rng, jokes, room, "jokes") or rng.choice(jokes)
+    rule = _named_item(rules, _safe_get(room, "rule", "")) if room else None
+    if rule is None and room and room.get("rule"):
+        rule = {"name": _safe_get(room, "rule", "Room Rule"), "text": _safe_get(room, "rule", "the room takes it seriously")}
+    if rule is None:
+        rule = rng.choice(rules)
     relationship = rng.choice(relationships)
     premise = rng.choice(premises)
     if selected_sparks:
@@ -419,8 +440,21 @@ def generate_episode(state: dict[str, Any], options: dict[str, Any] | None = Non
             "title": _spark_title(selected_sparks, premise),
             "spark": _spark_premise(selected_sparks, premise),
         }
+    if room:
+        room_spark = _sentence(_safe_get(premise, "spark", recurring_premise))
+        memory_suffix = (
+            f" The room is still carrying saved canon: {memory_context['previously']}"
+            if memory_context.get("has_memory")
+            else ""
+        )
+        premise = {
+            "title": _name(premise),
+            "spark": f"{room_spark} In {_name(room)}, {_safe_get(room, 'mood', 'old room energy')} is already in the air.{memory_suffix}",
+        }
     callback_pool = [spark["callback"] for spark in selected_sparks] + [_name(prop), _name(joke), _safe_get(cast[0], "phrase", _name(cast[0]))]
-    callback = rng.choice(callback_pool)
+    if room:
+        callback_pool.extend([_name(room), _safe_get(room, "memory", _name(room))])
+    callback = str(rng.choice(callback_pool)).strip().rstrip(".!?") or _name(prop)
 
     traces = [_character_trace(rng, character, idx, weirdness) for idx, character in enumerate(cast)]
     midpoint = sum(trace["trace"][-1] for trace in traces) % 29
@@ -442,6 +476,8 @@ def generate_episode(state: dict[str, Any], options: dict[str, Any] | None = Non
         escalation,
         core_rule,
         selected_sparks,
+        room,
+        memory_context,
     )
     stories = _story_threads(cast, premise, prop, joke, selected_sparks)
     script = _render_script(
@@ -464,8 +500,11 @@ def generate_episode(state: dict[str, Any], options: dict[str, Any] | None = Non
         selected_sparks,
         stories,
         prompt_analysis,
+        room,
+        memory_context,
     )
     best_line = _best_line(beats)
+    canon_candidate = _canon_candidate(title, mode, seed, cast, room, prop, joke, collision)
     return {
         "title": title,
         "show_name": show_name,
@@ -476,6 +515,7 @@ def generate_episode(state: dict[str, Any], options: dict[str, Any] | None = Non
         "cast_size": len(cast),
         "cast": [_name(item) for item in cast],
         "setting": _name(location),
+        "room": _room_payload(room),
         "prop": _name(prop),
         "running_joke": _name(joke),
         "rule": _name(rule),
@@ -487,7 +527,9 @@ def generate_episode(state: dict[str, Any], options: dict[str, Any] | None = Non
         "beats": beats,
         "collision": collision,
         "traces": traces,
-        "trace_lines": _trace_lines(traces, collision, callback, selected_sparks, prompt_analysis),
+        "trace_lines": _trace_lines(traces, collision, callback, selected_sparks, prompt_analysis, room, memory_context),
+        "memory_context": memory_context,
+        "canon_candidate": canon_candidate,
         "script": script,
         "best_line": best_line,
         "share_text": f"{best_line}\n\nSkitBox | {mode} | seed {seed}",
@@ -526,12 +568,25 @@ def _build_beats(
     escalation: str,
     core_rule: str,
     selected_sparks: list[dict[str, Any]],
+    room: dict[str, Any] | None = None,
+    memory_context: dict[str, Any] | None = None,
 ) -> list[dict[str, str]]:
     a, b = cast[0], cast[1]
     c = cast[2] if len(cast) > 2 else cast[0]
     d = cast[3] if len(cast) > 3 else cast[-1]
     setup = MODE_SETUPS.get(mode, MODE_SETUPS["Bad Plan"])
     spark_line = _spark_conflict(selected_sparks) if selected_sparks else _safe_get(premise, "spark", "one normal errand has become public")
+    spark_line = spark_line.rstrip(".!?")
+    room_memory = _safe_get(room, "memory", "") if room else ""
+    memory_context = memory_context or {"previously": room_memory or "No saved canon here yet.", "characters": []}
+    memory_by_name = {
+        str(item.get("name") or ""): item
+        for item in memory_context.get("characters", [])
+        if isinstance(item, dict)
+    }
+    previously = str(memory_context.get("previously") or room_memory or "No saved canon here yet.")
+    a_memory = _character_memory_line(a, memory_by_name)
+    c_memory = _character_memory_line(c, memory_by_name)
     return [
         {
             "label": "Cold Open",
@@ -539,9 +594,14 @@ def _build_beats(
             "line": f"{setup.capitalize()}, because {spark_line}.",
         },
         {
+            "label": "Previously In This Room",
+            "speaker": "Narrator",
+            "line": previously,
+        },
+        {
             "label": "Act One - A Story",
             "speaker": _name(a),
-            "line": f"{_safe_get(a, 'phrase', 'Right.')} If {_name(prop)} is involved, we need rules before anyone touches {_name(location)}.",
+            "line": f"{_safe_get(a, 'phrase', 'Right.')} {a_memory}If {_name(prop)} is involved, we need rules before anyone touches {_name(location)}.",
         },
         {
             "label": "Act One - A Story",
@@ -551,7 +611,7 @@ def _build_beats(
         {
             "label": "Act One - B Story",
             "speaker": _name(c),
-            "line": f"{_safe_get(c, 'phrase', 'I noticed something.')} {_safe_get(relationship, 'dynamic', 'This room has history')}, while {_name(joke)} starts a second, smaller problem.",
+            "line": f"{_safe_get(c, 'phrase', 'I noticed something.')} {c_memory}{_safe_get(relationship, 'dynamic', 'This room has history')}, while {_name(joke)} starts a second, smaller problem.",
         },
         {
             "label": "Act One - B Story",
@@ -608,12 +668,17 @@ def _render_script(
     selected_sparks: list[dict[str, Any]],
     stories: dict[str, str],
     prompt_analysis: dict[str, Any] | None,
+    room: dict[str, Any] | None = None,
+    memory_context: dict[str, Any] | None = None,
 ) -> str:
+    memory_line = str((memory_context or {}).get("previously") or "No canon saved in this room yet.")
     lines = [
         title.upper(),
         "",
         f"Show: {show_name} ({sitcom_type}, {tone})",
         f"Mode: {mode} | Weirdness: {weirdness}",
+        f"Room: {_name(room)} - {_safe_get(room, 'description', 'room map not selected')}" if room else "Room: No fixed room",
+        f"Memory: {memory_line}",
         f"Premise: {_name(premise)} - {_safe_get(premise, 'spark', recurring_premise)}",
         f"Scene Sparks: {', '.join(spark['name'] for spark in selected_sparks) if selected_sparks else 'None'}",
     ]
@@ -648,6 +713,10 @@ def _render_script(
             f"Collision: {collision['type']} | action={collision['action']}",
         ]
     )
+    if room:
+        lines.append(f"Room memory: {_safe_get(room, 'memory', 'nothing recorded yet')}")
+    if memory_context:
+        lines.append(f"Canon read: {memory_line}")
     for trace in traces:
         lines.append(
             f"- {trace['name']}: prime Z{trace['prime']}, seed {trace['seed']}, "
@@ -717,8 +786,14 @@ def _trace_lines(
     callback: str,
     selected_sparks: list[dict[str, Any]],
     prompt_analysis: dict[str, Any] | None = None,
+    room: dict[str, Any] | None = None,
+    memory_context: dict[str, Any] | None = None,
 ) -> list[str]:
     lines = [f"Collision chose {collision['type']} because {collision['relationship']}."]
+    if room:
+        lines.append(f"Room {_name(room)} steered the scene with mood '{_safe_get(room, 'mood', 'ready')}'.")
+    if memory_context:
+        lines.append(f"Memory read: {memory_context.get('previously') or 'No canon saved in this room yet.'}")
     if selected_sparks:
         lines.append("Scene sparks: " + ", ".join(spark["name"] for spark in selected_sparks) + ".")
     if prompt_analysis and prompt_analysis.get("prompt"):
@@ -730,6 +805,100 @@ def _trace_lines(
             f"({trace['mood']}, {trace['drift']})"
         )
     return lines
+
+
+def _memory_count(state: dict[str, Any]) -> int:
+    total = 0
+    for item in _items(state, "room_history"):
+        incidents = item.get("incidents")
+        if isinstance(incidents, list):
+            total += len([incident for incident in incidents if isinstance(incident, dict)])
+    return total
+
+
+def _memory_context(state: dict[str, Any], room: dict[str, Any] | None, cast: list[dict[str, Any]]) -> dict[str, Any]:
+    room_id = _safe_get(room, "id", "") if room else ""
+    room_name = _name(room) if room else "No fixed room"
+    incidents: list[dict[str, Any]] = []
+    for history in _items(state, "room_history"):
+        if room_id and str(history.get("room_id") or "") == room_id:
+            raw_incidents = history.get("incidents")
+            if isinstance(raw_incidents, list):
+                incidents = [incident for incident in raw_incidents if isinstance(incident, dict)]
+            break
+    latest = incidents[0] if incidents else {}
+    manual_memory = _safe_get(room, "memory", "") if room else ""
+    if latest.get("summary"):
+        previously = str(latest["summary"])
+        has_memory = True
+    elif manual_memory and "waiting for its first" not in manual_memory.lower() and "no canon saved" not in manual_memory.lower():
+        previously = f"{room_name} has manual room memory: {manual_memory}"
+        has_memory = False
+    else:
+        previously = f"No canon saved in {room_name} yet. This scene can become the first remembered incident."
+        has_memory = False
+
+    character_states = {
+        str(item.get("name") or ""): item
+        for item in _items(state, "character_states")
+        if item.get("name")
+    }
+    characters = []
+    for character in cast:
+        name = _name(character)
+        item = character_states.get(name) or {}
+        characters.append(
+            {
+                "name": name,
+                "mood": str(item.get("mood") or "ready"),
+                "pressure": str(item.get("pressure") or _safe_get(character, "pressure", "being noticed")),
+                "last_incident": str(item.get("last_incident") or ""),
+                "relationship_nudge": str(item.get("relationship_nudge") or ""),
+                "canon_count": _int(item.get("canon_count"), 0) or 0,
+            }
+        )
+    return {
+        "room_id": room_id,
+        "room_name": room_name,
+        "has_memory": has_memory,
+        "previously": previously,
+        "incidents": incidents[:3],
+        "characters": characters,
+    }
+
+
+def _canon_candidate(
+    title: str,
+    mode: str,
+    seed: int,
+    cast: list[dict[str, Any]],
+    room: dict[str, Any] | None,
+    prop: dict[str, Any],
+    joke: dict[str, Any],
+    collision: dict[str, str],
+) -> dict[str, Any]:
+    room_name = _name(room) if room else "No fixed room"
+    summary = _short(
+        f"{title} would leave {room_name} remembering {mode} around {_name(prop)} and {_name(joke)}.",
+        180,
+    )
+    return {
+        "room_id": _safe_get(room, "id", "") if room else "",
+        "room_name": room_name,
+        "summary": summary,
+        "seed": seed,
+        "cast": [_name(item) for item in cast],
+        "collision": collision.get("type", mode.lower().replace(" ", "_")),
+    }
+
+
+def _character_memory_line(character: dict[str, Any], memory_by_name: dict[str, dict[str, Any]]) -> str:
+    memory = memory_by_name.get(_name(character)) or {}
+    last_incident = str(memory.get("last_incident") or "").strip()
+    if not last_incident:
+        return ""
+    mood = str(memory.get("mood") or "ready")
+    return f"I am still {mood} from {_short(last_incident, 70)}. "
 
 
 def _selected_sparks(spark_ids: Any) -> list[dict[str, Any]]:
@@ -869,6 +1038,102 @@ def _status(count: int, red_target: int, green_target: int) -> str:
     return "green"
 
 
+def _select_room(state: dict[str, Any], options: dict[str, Any]) -> dict[str, Any] | None:
+    rooms = _items(state, "rooms")
+    if not rooms:
+        return None
+    wanted = str(options.get("room_id") or options.get("room") or "").strip()
+    if wanted:
+        wanted_key = _key(wanted)
+        for room in rooms:
+            if wanted_key in {_key(room.get("id")), _key(_name(room)), _key(room.get("location"))}:
+                return room
+    return None
+
+
+def _room_payload(room: dict[str, Any] | None) -> dict[str, Any] | None:
+    if not room:
+        return None
+    return {
+        "id": _safe_get(room, "id", _key(_name(room))),
+        "name": _name(room),
+        "mood": _safe_get(room, "mood", "ready"),
+        "description": _safe_get(room, "description", ""),
+        "location": _safe_get(room, "location", _name(room)),
+        "memory": _safe_get(room, "memory", ""),
+    }
+
+
+def _room_cast(
+    rng: random.Random,
+    characters: list[dict[str, Any]],
+    room: dict[str, Any] | None,
+    count: int,
+) -> list[dict[str, Any]]:
+    if not room:
+        return _pick_many(rng, characters, count)
+    preferred = _matching_items(characters, _name_list(room.get("cast")))
+    if not preferred:
+        return _pick_many(rng, characters, count)
+    picked = rng.sample(preferred, min(count, len(preferred)))
+    picked_names = {_key(_name(item)) for item in picked}
+    remaining = [item for item in characters if _key(_name(item)) not in picked_names]
+    while len(picked) < count:
+        pool = remaining or characters
+        candidate = rng.choice(pool)
+        picked.append(candidate)
+        remaining = [item for item in remaining if _key(_name(item)) != _key(_name(candidate))]
+    return picked
+
+
+def _room_choice(
+    rng: random.Random,
+    items: list[dict[str, Any]],
+    room: dict[str, Any] | None,
+    key: str,
+) -> dict[str, Any] | None:
+    if not room:
+        return None
+    matches = _matching_items(items, _name_list(room.get(key)))
+    return rng.choice(matches) if matches else None
+
+
+def _matching_items(items: list[dict[str, Any]], names: list[str]) -> list[dict[str, Any]]:
+    wanted = {_key(name) for name in names if _key(name)}
+    if not wanted:
+        return []
+    return [item for item in items if _key(_name(item)) in wanted or _key(item.get("id")) in wanted]
+
+
+def _named_item(items: list[dict[str, Any]], name: str) -> dict[str, Any] | None:
+    wanted = _key(name)
+    if not wanted:
+        return None
+    for item in items:
+        if wanted in {_key(_name(item)), _key(item.get("id")), _key(item.get("title"))}:
+            return item
+    return None
+
+
+def _name_list(value: Any) -> list[str]:
+    if isinstance(value, list):
+        return [str(item).strip() for item in value if str(item).strip()]
+    if isinstance(value, str):
+        return [part.strip() for part in value.split(",") if part.strip()]
+    return []
+
+
+def _key(value: Any) -> str:
+    return re.sub(r"[^a-z0-9]+", "-", str(value or "").lower()).strip("-")
+
+
+def _sentence(value: str) -> str:
+    text = str(value or "").strip()
+    if not text:
+        return ""
+    return text if text.endswith((".", "!", "?")) else text + "."
+
+
 def _items(state: dict[str, Any], key: str) -> list[dict[str, Any]]:
     value = state.get(key)
     if not isinstance(value, list):
@@ -904,6 +1169,13 @@ def _int(value: Any, fallback: int | None) -> int | None:
         return int(value)
     except (TypeError, ValueError):
         return fallback
+
+
+def _short(value: str, limit: int) -> str:
+    text = " ".join(str(value or "").split())
+    if len(text) <= limit:
+        return text
+    return text[: max(0, limit - 3)].rstrip(" .,!?:;") + "..."
 
 
 def _fallback_character() -> dict[str, str]:

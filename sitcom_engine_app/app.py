@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 import argparse
 import json
@@ -98,6 +98,13 @@ class SkitBoxHandler(BaseHTTPRequestHandler):
                 state = storage.load_state()
                 episode = generate_episode(state, payload)
                 self._json({"ok": True, "episode": episode, "readiness": analyze_state(state)})
+            elif path == "/api/canon":
+                episode = payload.get("episode") or {}
+                result = storage.canonize_episode(episode)
+                self._json({"ok": True, "state": result["state"], "incident": result["incident"], "readiness": analyze_state(result["state"])})
+            elif path == "/api/memory/reset":
+                state = storage.reset_memory()
+                self._json({"ok": True, "state": state, "readiness": analyze_state(state)})
             elif path == "/api/describe":
                 analysis = describe_scene_prompt(str(payload.get("prompt") or ""))
                 self._json({"ok": True, "analysis": analysis})
@@ -134,6 +141,8 @@ def _app_routes() -> set[str]:
         "/bible",
         "/characters",
         "/locations",
+        "/rooms",
+        "/memory",
         "/jokes",
         "/sparks",
         "/generate",

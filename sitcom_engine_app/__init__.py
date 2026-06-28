@@ -1,3 +1,3 @@
-﻿"""SkitBox local app package."""
+"""SkitBox local app package."""
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"

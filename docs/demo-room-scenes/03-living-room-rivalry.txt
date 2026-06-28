@@ -1,0 +1,16 @@
+Demo: Living Room Rivalry
+
+Seed: 303
+Mode: Bad Plan
+Weirdness: 64
+Cast size: 5
+Room: living-room
+
+Command:
+python scripts\sample_episodes.py --seed 303 --mode "Bad Plan" --weirdness 64 --cast-size 5 --room living-room
+
+Expected proof:
+- Third generated scene includes "Room: Living Room".
+- The selected room mood is "ceremonial laziness".
+- The Second Remote, Sofa Court, or Chair callback can steer the scene.
+

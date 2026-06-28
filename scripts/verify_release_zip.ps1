@@ -1,4 +1,4 @@
-﻿param(
+param(
   [string]$Version = "",
   [string]$ZipPath = "",
   [string]$WorkRoot = "",

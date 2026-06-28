@@ -1,0 +1,11 @@
+Memory proof: Kitchen bad plan into misunderstanding
+
+Command:
+python scripts\sample_memory.py --room kitchen --first-seed 40401 --second-seed 40402 --first-mode "Bad Plan" --second-mode "Misunderstanding"
+
+Expected anchors:
+- first scene room is Kitchen
+- canon incident summary is printed between scenes
+- second scene contains Previously In This Room
+- second scene trace contains Memory read:
+

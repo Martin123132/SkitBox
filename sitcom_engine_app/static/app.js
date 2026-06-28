@@ -1,4 +1,4 @@
-﻿const APP_NAME = "SkitBox";
+const APP_NAME = "SkitBox";
 
 const PAGES = {
   start: ["Start", "Ready Room"],
@@ -7,10 +7,12 @@ const PAGES = {
   bible: ["Bible", "Show Bible"],
   characters: ["Characters", "Cast"],
   locations: ["Locations", "Places & Props"],
+  rooms: ["Rooms", "Room Map"],
+  memory: ["Memory", "Canon Memory"],
   jokes: ["Jokes", "Jokes & Rules"],
   sparks: ["Sparks", "Scene Sparks"],
-  generate: ["Generate", "Skit Generator"],
-  library: ["Library", "Skit Library"],
+  generate: ["Generate", "Episode Generator"],
+  library: ["Library", "Episode Library"],
   setup: ["Setup", "Local Setup"],
 };
 
@@ -19,9 +21,11 @@ const WORKFLOW_STEPS = [
   { page: "bible", title: "2) Write the bible", hint: "Set core rule and recurring premise." },
   { page: "characters", title: "3) Add cast", hint: "Give people names and personality lines." },
   { page: "locations", title: "4) Add places and props", hint: "Your room gets room rules, textures, and hooks." },
-  { page: "jokes", title: "5) Add jokes and rules", hint: "Load recurring material and relationships." },
-  { page: "sparks", title: "6) Choose scene sparks", hint: "Describe a weird scene or pick 1-3 sparks." },
-  { page: "generate", title: "7) Generate skit", hint: "Set cast size and click generate." },
+  { page: "rooms", title: "5) Arrange the room map", hint: "Move cast, props, jokes, and memory into rooms." },
+  { page: "memory", title: "6) Review canon memory", hint: "Memory only changes when you save a scene as canon." },
+  { page: "jokes", title: "7) Add jokes and rules", hint: "Load recurring material and relationships." },
+  { page: "sparks", title: "8) Choose scene sparks", hint: "Describe a weird scene or pick 1-3 sparks." },
+  { page: "generate", title: "9) Generate skit", hint: "Set room, cast size, and click generate." },
 ];
 
 const PROMPT_EXAMPLES = [
@@ -73,6 +77,14 @@ const PAGE_GUIDE_NOTES = {
     title: "Spaces create stakes",
     text: "One memorable room + one prop is enough to give scenes an anchor.",
   },
+  rooms: {
+    title: "Rooms remember",
+    text: "Pick where people and props currently are. Generate in a room when you want the scene anchored.",
+  },
+  memory: {
+    title: "Canon is deliberate",
+    text: "Generate scenes freely. Only press Save This As Canon when a scene should become memory.",
+  },
   jokes: {
     title: "Recurring ingredients",
     text: "Short jokes and clear relationships make scenes read like improv with structure.",
@@ -106,6 +118,8 @@ const state = {
   templates: [],
   sparks: [],
   selectedSparks: [],
+  selectedRoomId: "",
+  roomsDirty: false,
   scenePrompt: "",
   promptAnalysis: null,
   favourites: [],
@@ -148,6 +162,7 @@ async function loadApp() {
   state.doctor = doctorData;
   state.templates = templatesData.templates;
   state.sparks = sparksData.sparks;
+  ensureSelectedRoom();
   if (!state.show.template_selected && state.page === "start") {
     state.page = "guide";
     history.replaceState({}, "", "/guide");
@@ -182,8 +197,10 @@ function render() {
     node.classList.toggle("active", node.dataset.page === state.page);
   });
   renderNavigationStatus();
+  renderMobileNavigation();
   const sideStatus = el("sideStatus");
-  sideStatus.innerHTML = `${dot(state.readiness.overall)}<span>${labelStatus(state.readiness.overall)} - ${escapeHtml(state.readiness.next_action)}</span>`;
+  const sidePrefix = state.readiness.next_optional ? "Optional" : labelStatus(state.readiness.overall);
+  sideStatus.innerHTML = `${dot(state.readiness.overall)}<span>${escapeHtml(sidePrefix)} - ${escapeHtml(state.readiness.next_action)}</span>`;
   renderCoachRow();
 
   if (state.page === "start") renderStart();
@@ -192,6 +209,8 @@ function render() {
   if (state.page === "bible") renderBible();
   if (state.page === "characters") renderCharacters();
   if (state.page === "locations") renderLocations();
+  if (state.page === "rooms") renderRooms();
+  if (state.page === "memory") renderMemory();
   if (state.page === "jokes") renderJokes();
   if (state.page === "sparks") renderSparks();
   if (state.page === "generate") renderGenerate();
@@ -209,9 +228,11 @@ function pageMood(page) {
 
 function renderGuide() {
   const readinessLabel = `${state.readiness.next_action}`;
+  const firstRun = !state.show.template_selected;
   el("pageRoot").innerHTML = `
     <section class="panel">
-      <h2>Build your first skit in 7 quick steps</h2>
+      <h2>Build your first skit in 9 quick steps</h2>
+      ${firstRun ? renderFirstRunCard() : ""}
       ${renderPageGuide("guide")}
       <p class="helper-text">Use one page at a time. Complete each step, then move to the next.</p>
       <div class="demo-callout">
@@ -227,6 +248,14 @@ function renderGuide() {
     </section>
   `;
   el("guideDemoButton").addEventListener("click", () => runDemoMode("guideMessage"));
+  const firstRunTemplateButton = el("firstRunTemplateButton");
+  if (firstRunTemplateButton) {
+    firstRunTemplateButton.addEventListener("click", () => navigate("templates"));
+  }
+  const firstRunDemoButton = el("firstRunDemoButton");
+  if (firstRunDemoButton) {
+    firstRunDemoButton.addEventListener("click", () => runDemoMode("guideMessage"));
+  }
   setGuidePageButtons();
 }
 
@@ -241,15 +270,16 @@ function renderCoachRow() {
   const overall = String(state.readiness.overall || "red");
   const nextAction = String(state.readiness.next_action || "Continue");
   const nextPage = state.readiness.next_page || "start";
+  const nextPrefix = state.readiness.next_optional ? "Optional" : labelStatus(overall);
 
   row.classList.remove("red", "amber", "green");
   light.classList.remove("red", "amber", "green");
   row.classList.add(overall);
   light.classList.add(overall);
 
-  text.textContent = `${labelStatus(overall)}: ${nextAction}.`;
+  text.textContent = `${nextPrefix}: ${nextAction}.`;
   if (nextPage && nextPage !== state.page && PAGES[nextPage]) {
-    button.textContent = `Go to ${PAGES[nextPage][0]}`;
+    button.textContent = state.readiness.next_optional ? `Open ${PAGES[nextPage][0]}` : `Go to ${PAGES[nextPage][0]}`;
     button.hidden = false;
     button.onclick = () => navigate(nextPage);
   } else {
@@ -264,17 +294,47 @@ function renderNavigationStatus() {
     const label = PAGES[page]?.[0] || page;
     const status = navPageStatus(page);
     const isNext = page === nextPage;
+    const nextLabel = state.readiness?.next_optional ? "Optional" : "Next";
     link.dataset.status = status;
     link.classList.toggle("next", isNext);
-    link.setAttribute("aria-label", `${label}: ${labelStatus(status)}${isNext ? ", next step" : ""}`);
+    link.setAttribute("aria-label", `${label}: ${labelStatus(status)}${isNext ? `, ${nextLabel.toLowerCase()} step` : ""}`);
     link.innerHTML = `
       <span class="nav-link-main">
         <span class="nav-status-dot ${escapeAttr(status)}"></span>
         <span>${escapeHtml(label)}</span>
       </span>
-      ${isNext ? `<small>Next</small>` : ""}
+      ${isNext ? `<small>${escapeHtml(nextLabel)}</small>` : ""}
     `;
   });
+}
+
+function renderMobileNavigation() {
+  const panel = el("mobileNavPanel");
+  if (!panel || !state.readiness) {
+    return;
+  }
+  const nextPage = state.readiness.next_page || "generate";
+  const nextLabel = PAGES[nextPage]?.[0] || "Next";
+  const nextPrefix = state.readiness.next_optional ? "Optional" : "Next";
+  const pageOptions = Object.entries(PAGES).map(([page, labels]) => {
+    const status = labelStatus(navPageStatus(page));
+    return `<option value="${escapeAttr(page)}" ${page === state.page ? "selected" : ""}>${escapeHtml(labels[0])} - ${escapeHtml(status)}</option>`;
+  }).join("");
+  panel.innerHTML = `
+    <label class="mobile-page-menu">
+      <span>Page</span>
+      <select id="mobilePageSelect">${pageOptions}</select>
+    </label>
+    <button class="mobile-next-button" id="mobileNextButton" ${nextPage === state.page ? "hidden" : ""}>
+      ${dot(navPageStatus(nextPage))}
+      <span>${escapeHtml(nextPrefix)}: ${escapeHtml(nextLabel)}</span>
+    </button>
+  `;
+  el("mobilePageSelect").addEventListener("change", (event) => navigate(event.target.value));
+  const nextButton = el("mobileNextButton");
+  if (nextButton && nextPage !== state.page) {
+    nextButton.addEventListener("click", () => navigate(nextPage));
+  }
 }
 
 function navPageStatus(page) {
@@ -290,6 +350,25 @@ function navPageStatus(page) {
   return workflowStepStatus(page);
 }
 
+function renderFirstRunCard() {
+  return `
+    <section class="first-run-card" aria-label="First run steps">
+      <div>
+        <h3>First run: get a laugh before editing</h3>
+        <ol>
+          <li>Pick a world, or let Demo Mode load one for you.</li>
+          <li>Generate one skit so you can see the shape.</li>
+          <li>Edit cast, places, jokes, and sparks after that.</li>
+        </ol>
+      </div>
+      <div class="action-row compact">
+        <button class="primary" id="firstRunDemoButton">Show Me A Funny One</button>
+        <button id="firstRunTemplateButton">Pick A World</button>
+      </div>
+    </section>
+  `;
+}
+
 function setGuidePageButtons() {
   document.querySelectorAll("[data-guide-page]").forEach((button) => {
     const target = button.dataset.guidePage;
@@ -299,6 +378,7 @@ function setGuidePageButtons() {
 
 function renderGuideTrack({ includeCurrent = false, fromPage = null, maxSteps = 0 } = {}) {
   const nextPage = state.readiness.next_page || "start";
+  const nextLabel = state.readiness.next_optional ? "optional" : "next";
   const startIndex = workflowStartIndex(fromPage);
   const stepCards = [];
   for (const step of WORKFLOW_STEPS.slice(startIndex)) {
@@ -308,7 +388,7 @@ function renderGuideTrack({ includeCurrent = false, fromPage = null, maxSteps = 
     const disabled = isNext ? false : step.page === "generate" && status !== "green";
     const buttonText = step.page === "generate" ? "Open Generator" : `Go to ${PAGES[step.page][0]}`;
     const buttonClass = status === "green" ? "secondary-button" : "primary";
-    const statusText = `${labelStatus(status)}${isNext ? " - next" : ""}`;
+    const statusText = `${labelStatus(status)}${isNext ? ` - ${nextLabel}` : ""}`;
     const buttonMarkup = isCurrent
       ? `<span class="guide-step-status">Current page</span>`
       : `<button class="${buttonClass}" data-guide-page="${escapeAttr(step.page)}" ${disabled ? "disabled" : ""}>${buttonText}</button>`;
@@ -357,6 +437,12 @@ function workflowStepStatus(page) {
   if (page === "sparks") {
     return "green";
   }
+  if (page === "rooms") {
+    return state.readiness.pages.rooms || "amber";
+  }
+  if (page === "memory") {
+    return state.readiness.pages.memory || "amber";
+  }
   return state.readiness.pages[page] || "red";
 }
 
@@ -384,7 +470,7 @@ function renderStart() {
           <span class="pill">${state.readiness.counts.characters} cast</span>
           <span class="pill">${state.readiness.counts.jokes} jokes</span>
         </div>
-        <p class="next-action"><strong>Next</strong>${escapeHtml(state.readiness.next_action)}</p>
+        <p class="next-action"><strong>${state.readiness.next_optional ? "Optional" : "Next"}</strong>${escapeHtml(state.readiness.next_action)}</p>
         <div class="guide-track-mini">
           ${renderGuideTrack({
             includeCurrent: false,
@@ -507,6 +593,155 @@ Prop | running joke</code>
   el("saveLocationsButton").addEventListener("click", saveLocations);
 }
 
+function renderRooms() {
+  ensureSelectedRoom();
+  const rooms = roomList();
+  const active = activeRoom();
+  const roomCards = rooms.map((room) => `
+    <button class="room-card ${room.id === state.selectedRoomId ? "active" : ""}" data-room-id="${escapeAttr(room.id)}">
+      <span class="room-card-name">${escapeHtml(room.name)}</span>
+      <span>${escapeHtml(room.mood || "ready")}</span>
+      <small>${escapeHtml([...(room.cast || []), ...(room.props || [])].slice(0, 4).join(" + ") || "Empty room")}</small>
+    </button>
+  `).join("");
+  el("pageRoot").innerHTML = `
+    <div class="page-grid room-page">
+      <section class="panel">
+        <h2>Room Map</h2>
+        ${renderPageGuide("rooms")}
+        <p>Rooms are scene anchors. Move cast and props into one room, then generate there when the traffic light feels right.</p>
+        <div class="room-save-reminder ${state.roomsDirty ? "dirty" : "saved"}">
+          ${state.roomsDirty ? "Unsaved room changes. Press Save Room Map, or Generate Scene In This Room to save and use them." : "Room map saved. Pick a room, adjust it, then generate there when it feels alive."}
+        </div>
+        <div class="room-card-grid">${roomCards}</div>
+        ${active ? `
+          <section class="room-editor" aria-label="Selected room editor">
+            <div>
+              <h3>${escapeHtml(active.name)}</h3>
+              <p>${escapeHtml(active.description || active.location || "A room waiting for a bit.")}</p>
+            </div>
+            <div class="form-grid">
+              ${field("Mood", "roomMoodInput", active.mood || "ready for trouble")}
+              ${field("Room Rule", "roomRuleInput", active.rule || "")}
+            </div>
+            ${textareaField("Room Memory", "roomMemoryInput", active.memory || "")}
+            <div class="room-move-grid">
+              ${renderRoomMoveControl("cast", "Move Cast", "roomCastSelect", "moveCastButton", (state.show.characters || []).map((item) => item.name))}
+              ${renderRoomMoveControl("props", "Move Prop", "roomPropSelect", "movePropButton", (state.show.props || []).map((item) => item.name))}
+              ${renderRoomMoveControl("jokes", "Move Joke", "roomJokeSelect", "moveJokeButton", (state.show.jokes || []).map((item) => item.name))}
+            </div>
+            <div class="room-contents">
+              ${renderRoomChips("cast", "Cast", active.cast || [])}
+              ${renderRoomChips("props", "Props", active.props || [])}
+              ${renderRoomChips("jokes", "Jokes", active.jokes || [])}
+            </div>
+            <div class="action-row">
+              <button class="primary" id="generateRoomButton">Generate Scene In This Room</button>
+              <button id="saveRoomsButton">Save Room Map</button>
+            </div>
+            <p class="helper-text" id="roomsMessage"></p>
+          </section>
+        ` : `<div class="empty-state"><strong>No rooms yet.</strong><p>Add locations first, then save to build a room map.</p></div>`}
+      </section>
+      <aside class="panel flat">
+        <h3>Room Readiness</h3>
+        ${renderReadiness()}
+        <p class="next-action"><strong>Selected Room</strong>${escapeHtml(active?.name || "No room selected")}</p>
+      </aside>
+    </div>
+  `;
+  document.querySelectorAll("[data-room-id]").forEach((button) => {
+    button.addEventListener("click", () => {
+      state.selectedRoomId = button.dataset.roomId || "";
+      renderRooms();
+    });
+  });
+  if (!active) {
+    return;
+  }
+  el("roomMoodInput").addEventListener("input", () => {
+    active.mood = el("roomMoodInput").value.trim();
+    markRoomsDirty("Mood changed. Save the room map before you leave this page.");
+  });
+  el("roomRuleInput").addEventListener("input", () => {
+    active.rule = el("roomRuleInput").value.trim();
+    markRoomsDirty("Rule changed. Save the room map before you leave this page.");
+  });
+  el("roomMemoryInput").addEventListener("input", () => {
+    active.memory = el("roomMemoryInput").value.trim();
+    markRoomsDirty("Memory changed. Save the room map before you leave this page.");
+  });
+  el("moveCastButton").addEventListener("click", () => moveRoomItem("cast", el("roomCastSelect").value));
+  el("movePropButton").addEventListener("click", () => moveRoomItem("props", el("roomPropSelect").value));
+  el("moveJokeButton").addEventListener("click", () => moveRoomItem("jokes", el("roomJokeSelect").value));
+  document.querySelectorAll("[data-remove-room-item]").forEach((button) => {
+    button.addEventListener("click", () => removeRoomItem(button.dataset.kind, button.dataset.removeRoomItem));
+  });
+  el("saveRoomsButton").addEventListener("click", () => saveRooms());
+  el("generateRoomButton").addEventListener("click", async () => {
+    await saveRooms("Room map saved. Generating from this room...");
+    await generateEpisode(false);
+  });
+}
+
+function renderMemory() {
+  const characterCards = memoryCharacterList().map((item) => `
+    <article class="memory-card">
+      <div class="memory-card-head">
+        <strong>${escapeHtml(item.name)}</strong>
+        <span>${escapeHtml(item.mood || "ready")}</span>
+      </div>
+      <p><b>Pressure:</b> ${escapeHtml(item.pressure || "being noticed")}</p>
+      <p><b>Last canon:</b> ${escapeHtml(item.last_incident || "Nothing saved yet.")}</p>
+      <small>${Number(item.canon_count || 0)} canon save${Number(item.canon_count || 0) === 1 ? "" : "s"}</small>
+    </article>
+  `).join("");
+  const historyCards = memoryRoomHistoryList().map((room) => `
+    <article class="memory-card room-memory-card">
+      <div class="memory-card-head">
+        <strong>${escapeHtml(room.room_name)}</strong>
+        <span>${room.incidents.length ? `${room.incidents.length} saved` : "empty"}</span>
+      </div>
+      ${renderIncidentList(room.incidents)}
+      <button class="secondary-button" data-memory-room="${escapeAttr(room.room_id)}">Generate In This Room</button>
+    </article>
+  `).join("");
+  const hasEpisode = Boolean(state.currentEpisode && state.currentEpisode.script);
+  const memoryCount = Number(state.readiness.counts.memory || 0);
+  el("pageRoot").innerHTML = `
+    <div class="page-grid">
+      <section class="panel">
+        <h2>Canon Memory</h2>
+        ${renderPageGuide("memory")}
+        <p>Memory is manual. Generate as many scenes as you want; only the scenes you save as canon affect future scenes.</p>
+        <div class="memory-save-reminder ${memoryCount ? "saved" : "fresh"}">
+          ${memoryCount ? `${memoryCount} saved incident${memoryCount === 1 ? "" : "s"} can now influence room callbacks and character pressure.` : "No canon saved yet. Generate a keeper, then press Save This As Canon."}
+        </div>
+        <div class="action-row">
+          <button class="primary" id="memoryCanonButton" ${hasEpisode ? "" : "disabled"}>Save Current Scene As Canon</button>
+          <button class="danger" id="resetMemoryButton">Reset Canon Memory</button>
+        </div>
+        <p class="message" id="memoryMessage"></p>
+        <h3>Character Memory</h3>
+        <div class="memory-grid">${characterCards || `<div class="empty-state"><strong>No cast yet.</strong><p>Add characters first.</p></div>`}</div>
+      </section>
+      <aside class="panel flat">
+        <h3>Room History</h3>
+        <p class="helper-text">Newest saved incidents appear first. The engine reads these as sitcom callbacks.</p>
+        <div class="memory-stack">${historyCards || `<div class="empty-state"><strong>No rooms yet.</strong><p>Add locations to make rooms.</p></div>`}</div>
+      </aside>
+    </div>
+  `;
+  el("memoryCanonButton").addEventListener("click", () => saveCanon("memoryMessage"));
+  el("resetMemoryButton").addEventListener("click", resetMemory);
+  document.querySelectorAll("[data-memory-room]").forEach((button) => {
+    button.addEventListener("click", () => {
+      state.selectedRoomId = button.dataset.memoryRoom || "";
+      navigate("generate");
+    });
+  });
+}
+
 function renderJokes() {
   const jokes = state.show.jokes.map((item) => [item.name, item.text].map(clean).join(" | ")).join("\n");
   const rules = state.show.rules.map((item) => [item.name, item.text].map(clean).join(" | ")).join("\n");
@@ -606,6 +841,7 @@ function renderSparks() {
 }
 
 function renderGenerate() {
+  ensureSelectedRoom();
   const episode = state.currentEpisode;
   const hasEpisode = Boolean(episode && episode.script);
   const canGenerate = canGenerateNow();
@@ -614,8 +850,10 @@ function renderGenerate() {
       <section class="panel">
         <h2>Generate Skit</h2>
         ${renderPageGuide("generate")}
+        ${renderRoomFocusCard()}
         <div class="form-grid">
           ${selectField("Mode", "modeSelect", episode?.mode || "Random", ["Random", "Cold Open", "Bottle Episode", "Misunderstanding", "Rivalry", "Bad Plan", "Guest Star", "Secret Revealed", "Finale Chaos"])}
+          ${roomSelectField()}
           ${field("Seed", "seedInput", episode?.seed || "", "auto")}
           <label class="field">Cast Size<input id="castSizeInput" type="number" min="2" max="5" value="${episode?.cast_size || 4}" /></label>
           <label class="field">Weirdness <span id="weirdnessValue">${episode?.weirdness || 58}</span><input id="weirdnessInput" type="range" min="0" max="100" value="${episode?.weirdness || 58}" /></label>
@@ -624,6 +862,11 @@ function renderGenerate() {
           <strong>Scene Sparks</strong>
           <span>${escapeHtml(selectedSparkLabel())}</span>
           <button id="chooseSparksButton">Choose Sparks</button>
+        </div>
+        <div class="selected-sparks">
+          <strong>Room</strong>
+          <span>${escapeHtml(activeRoom()?.name || "No room selected")}</span>
+          <button id="chooseRoomsButton">Edit Rooms</button>
         </div>
         <div class="prompt-tool compact-prompt">
           <label class="field">Describe A Weird Scene
@@ -645,6 +888,13 @@ function renderGenerate() {
               <p class="mini-card-title">Save</p>
               <div class="action-row compact">
                 <button id="saveFavouriteButton">Save Favourite</button>
+              </div>
+            </section>
+            <section class="mini-card">
+              <p class="mini-card-title">Canon</p>
+              <div class="action-row compact">
+                <button id="saveCanonButton">Save This As Canon</button>
+                <button id="openMemoryButton">Open Memory</button>
               </div>
             </section>
             <section class="mini-card">
@@ -689,7 +939,16 @@ function renderGenerate() {
   el("weirdnessInput").addEventListener("input", () => {
     el("weirdnessValue").textContent = el("weirdnessInput").value;
   });
+  const roomFocusEditButton = el("roomFocusEditButton");
+  if (roomFocusEditButton) {
+    roomFocusEditButton.addEventListener("click", () => navigate("rooms"));
+  }
   el("chooseSparksButton").addEventListener("click", () => navigate("sparks"));
+  el("chooseRoomsButton").addEventListener("click", () => navigate("rooms"));
+  el("roomSelect").addEventListener("change", () => {
+    state.selectedRoomId = el("roomSelect").value;
+    renderGenerate();
+  });
   el("generatePromptInput").addEventListener("input", () => {
     state.scenePrompt = el("generatePromptInput").value;
     state.promptAnalysis = null;
@@ -704,7 +963,10 @@ function renderGenerate() {
   el("sameSeedButton").addEventListener("click", () => generateEpisode(true));
   el("generateButton").disabled = !canGenerate;
   el("postGenerateDetails").hidden = !hasEpisode;
+  el("postGenerateDetails").open = hasEpisode;
   el("saveFavouriteButton").hidden = !hasEpisode;
+  el("saveCanonButton").hidden = !hasEpisode;
+  el("openMemoryButton").hidden = !hasEpisode;
   el("copyEpisodeButton").hidden = !hasEpisode;
   el("copyLineButton").hidden = !hasEpisode;
   el("exportTxtButton").hidden = !hasEpisode;
@@ -712,6 +974,8 @@ function renderGenerate() {
   el("openExportsButton").hidden = !hasEpisode;
   el("sameSeedButton").hidden = !hasEpisode;
   el("saveFavouriteButton").addEventListener("click", saveFavourite);
+  el("saveCanonButton").addEventListener("click", () => saveCanon("generateMessage"));
+  el("openMemoryButton").addEventListener("click", () => navigate("memory"));
   el("copyEpisodeButton").addEventListener("click", () => copyText(state.currentEpisode?.script || ""));
   el("copyLineButton").addEventListener("click", () => copyText(state.currentEpisode?.share_text || ""));
   el("exportTxtButton").addEventListener("click", () => exportEpisode("txt"));
@@ -721,6 +985,107 @@ function renderGenerate() {
 
 function canGenerateNow() {
   return Boolean(state.readiness && state.readiness.can_generate);
+}
+
+function roomList() {
+  if (!state.show) return [];
+  if (!Array.isArray(state.show.rooms)) {
+    state.show.rooms = [];
+  }
+  return state.show.rooms;
+}
+
+function ensureSelectedRoom() {
+  const rooms = roomList();
+  if (!rooms.length) {
+    state.selectedRoomId = "";
+    return;
+  }
+  if (!rooms.some((room) => room.id === state.selectedRoomId)) {
+    state.selectedRoomId = rooms[0].id || "";
+  }
+}
+
+function activeRoom() {
+  ensureSelectedRoom();
+  return roomList().find((room) => room.id === state.selectedRoomId) || null;
+}
+
+function memoryCharacterList() {
+  if (Array.isArray(state.show?.character_states) && state.show.character_states.length) {
+    return state.show.character_states;
+  }
+  return (state.show?.characters || []).map((character) => ({
+    name: character.name || "Unnamed",
+    mood: "ready",
+    pressure: character.pressure || "being noticed",
+    last_incident: "",
+    relationship_nudge: "",
+    canon_count: 0,
+  }));
+}
+
+function memoryRoomHistoryList() {
+  if (Array.isArray(state.show?.room_history) && state.show.room_history.length) {
+    return state.show.room_history;
+  }
+  return roomList().map((room) => ({
+    room_id: room.id,
+    room_name: room.name,
+    incidents: [],
+  }));
+}
+
+function renderIncidentList(incidents) {
+  if (!Array.isArray(incidents) || !incidents.length) {
+    return `<div class="empty-memory">No saved canon here yet.</div>`;
+  }
+  return `
+    <ol class="incident-list">
+      ${incidents.slice(0, 3).map((incident) => `
+        <li>
+          <strong>${escapeHtml(incident.title || "Untitled Skit")}</strong>
+          <span>${escapeHtml(incident.summary || "Saved canon incident.")}</span>
+          <small>${escapeHtml(incident.mode || "Scene")} | seed ${escapeHtml(incident.seed || "")}</small>
+        </li>
+      `).join("")}
+    </ol>
+  `;
+}
+
+function moveRoomItem(kind, value) {
+  const active = activeRoom();
+  if (!active || !value) return;
+  roomList().forEach((room) => {
+    room[kind] = Array.isArray(room[kind]) ? room[kind].filter((item) => item !== value) : [];
+  });
+  active[kind] = Array.isArray(active[kind]) ? active[kind] : [];
+  if (!active[kind].includes(value)) {
+    active[kind].push(value);
+  }
+  state.roomsDirty = true;
+  renderRooms();
+  setMessage("roomsMessage", `${value} moved into ${active.name}. Save the room map, or generate in this room to save and use it now.`);
+}
+
+function removeRoomItem(kind, value) {
+  const active = activeRoom();
+  if (!active || !kind || !value) return;
+  active[kind] = Array.isArray(active[kind]) ? active[kind].filter((item) => item !== value) : [];
+  state.roomsDirty = true;
+  renderRooms();
+  setMessage("roomsMessage", `${value} removed from ${active.name}. Save the room map when it looks right.`);
+}
+
+function markRoomsDirty(message) {
+  state.roomsDirty = true;
+  const reminder = document.querySelector(".room-save-reminder");
+  if (reminder) {
+    reminder.classList.remove("saved");
+    reminder.classList.add("dirty");
+    reminder.textContent = "Unsaved room changes. Press Save Room Map, or Generate Scene In This Room to save and use them.";
+  }
+  setMessage("roomsMessage", message || "Room map changed. Save it when it looks right.");
 }
 
 function renderLibrary() {
@@ -770,6 +1135,11 @@ function renderSetup() {
           <button id="openSetupExportsButton">Open Exports Folder</button>
           <button class="danger" id="resetButton">Reset Default Show</button>
         </div>
+        <div class="stop-note">
+          <strong>When you are finished</strong>
+          <p>Close the black launcher window, or double-click <code>STOP_SkitBox_WINDOWS.bat</code> in this folder.</p>
+          <p>Developer command: <code>powershell -ExecutionPolicy Bypass -File scripts\\stop_dev_processes.ps1</code></p>
+        </div>
         <p class="message" id="setupMessage"></p>
       </section>
       <aside class="panel flat">
@@ -814,8 +1184,9 @@ function renderEpisode(episode) {
   return `
     <section class="result-section">
       <h2 class="episode-title">${escapeHtml(episode.title)}</h2>
-      <p class="episode-meta">${escapeHtml(episode.mode)} | seed ${escapeHtml(episode.seed)} | ${escapeHtml(episode.setting)}</p>
+      <p class="episode-meta">${escapeHtml(episode.mode)} | seed ${escapeHtml(episode.seed)} | ${escapeHtml(episode.room?.name || "No room")} | ${escapeHtml(episode.setting)}</p>
       <div class="best-line">${escapeHtml(episode.best_line)}</div>
+      ${episode.canon_candidate ? `<div class="canon-summary"><strong>Canon candidate</strong><span>${escapeHtml(episode.canon_candidate.summary || "")}</span></div>` : ""}
       <pre class="script-output">${escapeHtml(episode.script)}</pre>
     </section>
   `;
@@ -834,6 +1205,8 @@ function renderReadiness() {
         ${meter("Cast", readiness.counts.characters, readiness.targets.characters)}
         ${meter("Locations", readiness.counts.locations, readiness.targets.locations)}
         ${meter("Props", readiness.counts.props, readiness.targets.props)}
+        ${meter("Rooms", readiness.counts.rooms, readiness.targets.rooms)}
+        ${meter("Memory", readiness.counts.memory, readiness.targets.memory)}
         ${meter("Jokes", readiness.counts.jokes, readiness.targets.jokes)}
         ${meter("Rules", readiness.counts.rules, readiness.targets.rules)}
         ${meter("Relationships", readiness.counts.relationships, readiness.targets.relationships)}
@@ -872,6 +1245,75 @@ function selectField(label, id, value, options) {
         ${options.map((option) => `<option ${option === value ? "selected" : ""}>${escapeHtml(option)}</option>`).join("")}
       </select>
     </label>
+  `;
+}
+
+function roomSelectField() {
+  const rooms = roomList();
+  return `
+    <label class="field">Room
+      <select id="roomSelect">
+        ${rooms.map((room) => `<option value="${escapeAttr(room.id)}" ${room.id === state.selectedRoomId ? "selected" : ""}>${escapeHtml(room.name)}</option>`).join("")}
+      </select>
+    </label>
+  `;
+}
+
+function renderRoomFocusCard() {
+  const room = activeRoom();
+  if (!room) {
+    return `
+      <section class="room-focus-card">
+        <strong>No room selected</strong>
+        <p>Open Rooms to pick where this scene happens.</p>
+      </section>
+    `;
+  }
+  const ingredients = [
+    ...(room.cast || []).slice(0, 3),
+    ...(room.props || []).slice(0, 2),
+    ...(room.jokes || []).slice(0, 1),
+  ].join(" + ");
+  return `
+    <section class="room-focus-card">
+      <div>
+        <span class="mini-card-title">Selected Room</span>
+        <strong>${escapeHtml(room.name)}</strong>
+        <p>${escapeHtml(room.mood || "ready")} ${ingredients ? `| ${ingredients}` : ""}</p>
+      </div>
+      <button id="roomFocusEditButton">Edit Room</button>
+    </section>
+  `;
+}
+
+function renderRoomMoveControl(kind, label, selectId, buttonId, options) {
+  const uniqueOptions = [...new Set(options.filter(Boolean))];
+  return `
+    <div class="room-move-control">
+      <label class="field">${label}
+        <select id="${selectId}">
+          ${uniqueOptions.map((option) => `<option value="${escapeAttr(option)}">${escapeHtml(option)}</option>`).join("")}
+        </select>
+      </label>
+      <button id="${buttonId}" data-move-kind="${escapeAttr(kind)}" ${uniqueOptions.length ? "" : "disabled"}>Move Here</button>
+    </div>
+  `;
+}
+
+function renderRoomChips(kind, label, names) {
+  const chips = names.length
+    ? names.map((name) => `
+      <button class="room-chip" data-kind="${escapeAttr(kind)}" data-remove-room-item="${escapeAttr(name)}">
+        <span>${escapeHtml(name)}</span>
+        <small>Remove</small>
+      </button>
+    `).join("")
+    : `<span class="room-empty-chip">Nothing here yet</span>`;
+  return `
+    <section class="room-content-block">
+      <h4>${escapeHtml(label)}</h4>
+      <div class="room-chip-row">${chips}</div>
+    </section>
   `;
 }
 
@@ -930,6 +1372,17 @@ async function saveJokes() {
   await saveState("jokesMessage", "Jokes, rules, relationships, and premises saved.");
 }
 
+async function saveRooms(message = "Room map saved.") {
+  const active = activeRoom();
+  if (active) {
+    active.mood = el("roomMoodInput")?.value.trim() || active.mood || "ready";
+    active.rule = el("roomRuleInput")?.value.trim() || active.rule || "";
+    active.memory = el("roomMemoryInput")?.value.trim() || active.memory || "";
+  }
+  state.roomsDirty = false;
+  await saveState("roomsMessage", message);
+}
+
 async function saveState(messageId, message) {
   const data = await api("/api/state", {
     method: "POST",
@@ -937,6 +1390,7 @@ async function saveState(messageId, message) {
   });
   state.show = data.state;
   state.readiness = data.readiness;
+  ensureSelectedRoom();
   render();
   const target = el(messageId);
   if (target) target.textContent = message;
@@ -950,6 +1404,7 @@ async function applyTemplate(templateId) {
   state.show = data.state;
   state.readiness = data.readiness;
   state.currentEpisode = null;
+  ensureSelectedRoom();
   await refreshDoctor();
   navigate("start", true);
 }
@@ -964,11 +1419,13 @@ async function generateEpisode(sameSeed) {
     seed: seedValue || undefined,
     cast_size: el("castSizeInput")?.value || 4,
     weirdness: el("weirdnessInput")?.value || 58,
+    room_id: state.selectedRoomId || undefined,
     sparks: state.selectedSparks,
     prompt: state.scenePrompt || undefined,
   };
   const data = await api("/api/generate", { method: "POST", body: JSON.stringify(payload) });
   state.currentEpisode = data.episode;
+  state.selectedRoomId = data.episode.room?.id || state.selectedRoomId;
   state.promptAnalysis = data.episode.prompt_analysis || state.promptAnalysis;
   state.scenePrompt = data.episode.scene_prompt || state.scenePrompt;
   state.readiness = data.readiness;
@@ -1006,6 +1463,7 @@ async function runDemoMode(messageId) {
       });
       state.show = templateData.state;
       state.readiness = templateData.readiness;
+      ensureSelectedRoom();
     }
 
     state.scenePrompt = DEMO_PROMPT;
@@ -1020,11 +1478,13 @@ async function runDemoMode(messageId) {
       method: "POST",
       body: JSON.stringify({
         ...DEMO_OPTIONS,
+        room_id: state.selectedRoomId || undefined,
         prompt: state.scenePrompt,
         sparks: state.selectedSparks,
       }),
     });
     state.currentEpisode = generated.episode;
+    state.selectedRoomId = generated.episode.room?.id || state.selectedRoomId;
     state.readiness = generated.readiness;
     state.promptAnalysis = generated.episode.prompt_analysis || state.promptAnalysis;
     state.scenePrompt = generated.episode.scene_prompt || state.scenePrompt;
@@ -1069,6 +1529,33 @@ async function saveFavourite() {
   setMessage("generateMessage", "Saved to Library.");
 }
 
+async function saveCanon(messageId = "generateMessage") {
+  if (!state.currentEpisode) {
+    setMessage(messageId, "Generate a skit first.");
+    return;
+  }
+  const data = await api("/api/canon", {
+    method: "POST",
+    body: JSON.stringify({ episode: state.currentEpisode }),
+  });
+  state.show = data.state;
+  state.readiness = data.readiness;
+  ensureSelectedRoom();
+  await refreshDoctor();
+  render();
+  setMessage(messageId, `Canon saved: ${data.incident.summary}`);
+}
+
+async function resetMemory() {
+  const data = await api("/api/memory/reset", { method: "POST", body: JSON.stringify({}) });
+  state.show = data.state;
+  state.readiness = data.readiness;
+  ensureSelectedRoom();
+  await refreshDoctor();
+  render();
+  setMessage("memoryMessage", "Canon memory reset. Rooms, cast, jokes, and favourites are still here.");
+}
+
 async function exportEpisode(format) {
   if (!state.currentEpisode) {
     setMessage("generateMessage", "Generate a skit first.");
@@ -1095,6 +1582,7 @@ async function resetShow() {
   state.show = data.state;
   state.readiness = data.readiness;
   state.currentEpisode = null;
+  ensureSelectedRoom();
   state.page = "templates";
   history.replaceState({}, "", "/templates");
   render();

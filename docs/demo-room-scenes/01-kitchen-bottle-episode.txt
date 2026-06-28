@@ -1,0 +1,18 @@
+Demo: Kitchen Bottle Episode
+
+Seed: 101
+Mode: Bottle Episode
+Weirdness: 58
+Cast size: 4
+Room: kitchen
+
+Command:
+python scripts\sample_episodes.py --seed 101 --mode "Bottle Episode" --weirdness 58 --cast-size 4 --room kitchen
+
+Expected proof:
+- Script includes "Room: Kitchen".
+- Setting is Kitchen.
+- Trace includes "Room Kitchen steered the scene".
+- Room memory mentions fridge notes and the biscuit inquiry.
+- Prop or running joke comes from the Kitchen room bank.
+

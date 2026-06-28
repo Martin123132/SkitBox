@@ -138,5 +138,43 @@
       "title": "The Chore Vote",
       "spark": "a democratic chore system immediately becomes a constitutional crisis"
     }
+  ],
+  "rooms": [
+    {
+      "id": "kitchen",
+      "name": "Kitchen",
+      "mood": "administrative panic",
+      "description": "the kettle clicks like a judge, the fridge is covered in laws, and the heroic chair is too central",
+      "location": "Kitchen",
+      "cast": ["Nina", "Mo", "Auntie Val"],
+      "props": ["The Good Mug", "The Chore Wheel"],
+      "jokes": ["The Kettle Knows", "Emergency Biscuits"],
+      "rule": "Fridge Law",
+      "memory": "Last time, the fridge note became a motion, a counter-motion, and a biscuit inquiry."
+    },
+    {
+      "id": "living-room",
+      "name": "Living Room",
+      "mood": "ceremonial laziness",
+      "description": "the tired sofa acts like a court bench and nobody agrees which remote is real",
+      "location": "Living Room",
+      "cast": ["Baz", "Theo", "Auntie Val"],
+      "props": ["The Second Remote"],
+      "jokes": ["The Chair Was Always There"],
+      "rule": "Sofa Court",
+      "memory": "The sofa has already issued one ruling and everyone is pretending that was normal."
+    },
+    {
+      "id": "landing",
+      "name": "Landing",
+      "mood": "whispered evidence",
+      "description": "laundry baskets, paint tins, and a shoe rack that keeps hearing secrets",
+      "location": "Landing",
+      "cast": ["Mo", "Theo", "Nina"],
+      "props": ["The Chore Wheel"],
+      "jokes": ["Emergency Biscuits", "The Chair Was Always There"],
+      "rule": "Cupboard Escalation",
+      "memory": "A private chat once bounced off the walls and became minutes before anyone reached the stairs."
+    }
   ]
 }
