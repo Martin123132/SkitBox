@@ -17,8 +17,15 @@ cast, setting, running joke, story beats, and a "why this happened" trace.
 4. Double-click `START_SkitBox_WINDOWS.bat`.
 5. When the browser opens, press `Show Me A Funny One`.
 
+If you are testing the app for someone else, press `Start Tester Run` on the
+first screen. It walks through generate, canon, memory, export, and feedback in
+one simple path.
+
+![SkitBox tester screenshot](docs/visuals/skitbox-tester.png)
+
 SkitBox needs Python 3.10 or newer. It does not need npm, Ollama, OpenAI,
-Claude, API keys, login, or an installer.
+Claude, API keys, login, or an installer. The current packaging choice is
+tracked in [docs/PYTHON_FRICTION_DECISION.md](docs/PYTHON_FRICTION_DECISION.md).
 
 To stop it, close the server window or double-click `STOP_SkitBox_WINDOWS.bat`.
 
@@ -47,7 +54,8 @@ On a phone-sized browser, the same flow stays readable:
 - Save a keeper as canon so future scenes can remember what happened.
 - Reset canon memory without deleting your show, favourites, or exports.
 - Save favourite skits locally.
-- Export TXT or HTML.
+- Export TXT, HTML, or a small share-card HTML.
+- Export and import World Packs as local JSON.
 - Open the exports folder from the app.
 - Reset back to the built-in starter show.
 

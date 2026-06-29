@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import os
 from pathlib import Path
 import tempfile
@@ -57,6 +58,26 @@ class StorageTests(unittest.TestCase):
                 exported = storage.export_episode(episode, "txt")
                 self.assertTrue(Path(exported["path"]).exists())
                 self.assertTrue(str(exported["path"]).startswith(tmp))
+
+                card = storage.export_episode(episode, "card")
+                card_path = Path(card["path"])
+                self.assertEqual(card["format"], "card")
+                self.assertEqual(card_path.suffix, ".html")
+                self.assertTrue(card_path.exists())
+                self.assertIn("SkitBox share card", card_path.read_text(encoding="utf-8"))
+
+                world_pack = storage.export_world_pack(reloaded_after_canon)
+                world_pack_path = Path(world_pack["path"])
+                self.assertTrue(world_pack_path.exists())
+                self.assertTrue(str(world_pack_path).startswith(tmp))
+                world_pack_payload = json.loads(world_pack_path.read_text(encoding="utf-8"))
+                self.assertEqual(world_pack_payload["skitbox_world_pack"], 1)
+                self.assertEqual(world_pack_payload["state"]["show_name"], "Test Show")
+
+                world_pack_payload["state"]["show_name"] = "Imported Show"
+                imported = storage.import_world_pack(world_pack_payload)
+                self.assertEqual(imported["show_name"], "Imported Show")
+                self.assertEqual(storage.load_state()["show_name"], "Imported Show")
 
                 opened_paths = []
                 opened = storage.open_exports_folder(opener=lambda path: opened_paths.append(path))

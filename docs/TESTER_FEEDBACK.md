@@ -16,6 +16,8 @@ Copy this section once per tester run.
 - Did Python block them:
 - Did the browser open:
 - Did Show Me A Funny One make sense:
+- Did Start Tester Run make sense:
+- Did the Tester page tell them what to do next:
 - Did the side-nav traffic lights make sense:
 - Did the `Next` marker help:
 - Did template choice make sense:
@@ -29,6 +31,7 @@ Copy this section once per tester run.
 
 - Generated a skit:
 - Used Demo Mode:
+- Used Tester Mode:
 - Edited or selected a room:
 - Generated from a room:
 - Saved current scene as canon:
@@ -38,6 +41,10 @@ Copy this section once per tester run.
 - Saved favourite:
 - Exported TXT:
 - Exported HTML:
+- Exported Share Card:
+- Copied Share Text:
+- Exported World Pack:
+- Imported World Pack:
 - Opened exports folder:
 - Closed the running app:
 

@@ -122,6 +122,13 @@ class SkitBoxHandler(BaseHTTPRequestHandler):
                     return
                 result = storage.export_episode(episode, str(payload.get("format") or "txt"))
                 self._json({"ok": True, "export": result})
+            elif path == "/api/world-pack/export":
+                result = storage.export_world_pack()
+                self._json({"ok": True, "world_pack": result})
+            elif path == "/api/world-pack/import":
+                world_pack = payload.get("world_pack") if isinstance(payload.get("world_pack"), dict) else payload
+                state = storage.import_world_pack(world_pack)
+                self._json({"ok": True, "state": state, "readiness": analyze_state(state)})
             elif path == "/api/open-exports":
                 result = storage.open_exports_folder()
                 self._json({"ok": True, "export_folder": result})
@@ -146,6 +153,7 @@ def _app_routes() -> set[str]:
         "/jokes",
         "/sparks",
         "/generate",
+        "/tester",
         "/library",
         "/setup",
     }

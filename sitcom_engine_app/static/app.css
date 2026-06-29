@@ -842,6 +842,13 @@ button.secondary-button:hover {
   letter-spacing: 0.03em;
 }
 
+.mini-card-copy {
+  margin: 7px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.35;
+}
+
 .mini-card .action-row {
   margin-top: 10px;
 }
@@ -1283,6 +1290,30 @@ button.secondary-button:hover {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 14px;
   margin-top: 22px;
+}
+
+.world-pack-panel {
+  margin-top: 24px;
+  border: 1px solid var(--line);
+  border-left: 6px solid var(--blue);
+  border-radius: var(--radius);
+  background: #f8fafb;
+  padding: 16px;
+}
+
+.world-pack-panel h3 {
+  margin: 0;
+}
+
+.world-pack-panel p {
+  margin-top: 7px;
+}
+
+.world-pack-panel textarea {
+  min-height: 170px;
+  font-family: Consolas, "Courier New", monospace;
+  font-size: 12px;
+  line-height: 1.45;
 }
 
 .guide-track {
@@ -1864,6 +1895,75 @@ label.field {
   margin-top: 12px;
 }
 
+.tester-status {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.tester-track {
+  display: grid;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.tester-step {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  border: 1px solid var(--line);
+  border-left: 6px solid var(--amber);
+  border-radius: var(--radius);
+  background: #fff;
+  padding: 12px;
+}
+
+.tester-step.done {
+  border-left-color: var(--green);
+  background: #f5fbf7;
+}
+
+.tester-step-number {
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  background: var(--ink);
+  color: #fff;
+  font-weight: 900;
+}
+
+.tester-step strong {
+  display: block;
+}
+
+.tester-step p {
+  margin-top: 4px;
+  font-size: 13px;
+}
+
+.tester-step button {
+  justify-self: end;
+  white-space: nowrap;
+}
+
+.feedback-summary {
+  width: 100%;
+  min-height: 360px;
+  margin-top: 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: #fff;
+  padding: 12px;
+  font-family: Consolas, "Courier New", monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  resize: vertical;
+}
+
 .library-list {
   display: grid;
   gap: 12px;
@@ -2080,6 +2180,17 @@ label.field {
 
   .first-run-card {
     grid-template-columns: 1fr;
+  }
+
+  .tester-step {
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: start;
+  }
+
+  .tester-step button {
+    grid-column: 1 / -1;
+    justify-self: stretch;
+    white-space: normal;
   }
 }
 

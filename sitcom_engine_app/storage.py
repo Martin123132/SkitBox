@@ -9,7 +9,7 @@ import sys
 import time
 from typing import Any
 
-from .engine import analyze_state, episode_to_html, episode_to_text
+from .engine import analyze_state, episode_to_html, episode_to_share_card_html, episode_to_text
 
 
 APP_NAME = "SkitBox"
@@ -165,20 +165,47 @@ def reset_memory() -> dict[str, Any]:
 
 def export_episode(episode: dict[str, Any], export_format: str = "txt") -> dict[str, Any]:
     export_format = str(export_format or "txt").lower()
-    if export_format not in {"txt", "html", "json"}:
+    if export_format not in {"txt", "html", "json", "card"}:
         export_format = "txt"
     title = str(episode.get("title") or "skitbox-skit")
     stem = _slugify(title)[:70] or "skitbox-skit"
     stamp = time.strftime("%Y%m%d-%H%M%S")
-    path = exports_dir() / f"{stamp}-{stem}.{export_format}"
+    extension = "html" if export_format == "card" else export_format
+    path = exports_dir() / f"{stamp}-{stem}.{extension}"
     if export_format == "html":
         content = episode_to_html(episode)
+    elif export_format == "card":
+        content = episode_to_share_card_html(episode)
     elif export_format == "json":
         content = json.dumps(episode, indent=2, ensure_ascii=False)
     else:
         content = episode_to_text(episode)
     path.write_text(content, encoding="utf-8")
     return {"path": str(path), "format": export_format, "title": title}
+
+
+def export_world_pack(state: dict[str, Any] | None = None) -> dict[str, Any]:
+    state = normalize_state(state or load_state())
+    stamp = time.strftime("%Y%m%d-%H%M%S")
+    show_name = _slugify(str(state.get("show_name") or "skitbox-world"))[:70] or "skitbox-world"
+    path = exports_dir() / f"{stamp}-{show_name}-world-pack.json"
+    payload = {
+        "skitbox_world_pack": 1,
+        "exported_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        "app": APP_NAME,
+        "state": state,
+    }
+    path.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
+    return {"path": str(path), "format": "json", "title": str(state.get("show_name") or "SkitBox World")}
+
+
+def import_world_pack(payload: dict[str, Any]) -> dict[str, Any]:
+    if not isinstance(payload, dict):
+        raise ValueError("World pack must be a JSON object.")
+    state = payload.get("state") if isinstance(payload.get("state"), dict) else payload
+    if not isinstance(state, dict):
+        raise ValueError("World pack does not contain a show state.")
+    return save_state(state)
 
 
 def open_exports_folder(opener: Any | None = None) -> dict[str, Any]:

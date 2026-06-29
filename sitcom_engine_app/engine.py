@@ -553,6 +553,41 @@ def episode_to_html(episode: dict[str, Any]) -> str:
     )
 
 
+def episode_to_share_card_html(episode: dict[str, Any]) -> str:
+    title = html.escape(str(episode.get("title") or "SkitBox Skit"))
+    best_line = html.escape(str(episode.get("best_line") or episode.get("share_text") or ""))
+    mode = html.escape(str(episode.get("mode") or "Scene"))
+    seed = html.escape(str(episode.get("seed") or "auto"))
+    room = episode.get("room") if isinstance(episode.get("room"), dict) else {}
+    room_name = html.escape(str(room.get("name") or episode.get("setting") or "No fixed room"))
+    share_text = html.escape(str(episode.get("share_text") or best_line))
+    return (
+        "<!doctype html><html><head><meta charset='utf-8'>"
+        "<meta name='viewport' content='width=device-width, initial-scale=1'>"
+        f"<title>{title} - SkitBox Share Card</title>"
+        "<style>"
+        "body{margin:0;min-height:100vh;display:grid;place-items:center;background:#182125;"
+        "font-family:Segoe UI,Arial,sans-serif;color:#182125;padding:24px;}"
+        ".card{width:min(760px,100%);background:#f8fafb;border:1px solid #d6dee2;"
+        "border-radius:8px;padding:34px;box-shadow:0 18px 46px rgba(0,0,0,.28);}"
+        ".brand{font-size:13px;font-weight:900;letter-spacing:.08em;text-transform:uppercase;color:#138a8a;}"
+        "h1{font-size:38px;line-height:1.04;margin:12px 0 18px;}"
+        ".line{border-left:6px solid #3267a8;background:#eef4fb;padding:20px;font-size:24px;"
+        "font-weight:900;line-height:1.25;border-radius:8px;margin:0 0 18px;}"
+        ".meta{display:flex;flex-wrap:wrap;gap:8px;color:#65737a;font-weight:800;font-size:13px;}"
+        ".meta span{border:1px solid #d6dee2;border-radius:999px;padding:7px 10px;background:#fff;}"
+        ".share{margin-top:20px;color:#65737a;font-size:13px;white-space:pre-wrap;}"
+        "</style></head><body>"
+        "<main class='card'>"
+        "<div class='brand'>SkitBox share card</div>"
+        f"<h1>{title}</h1>"
+        f"<p class='line'>{best_line}</p>"
+        f"<div class='meta'><span>{mode}</span><span>seed {seed}</span><span>{room_name}</span></div>"
+        f"<div class='share'>{share_text}</div>"
+        "</main></body></html>"
+    )
+
+
 def _build_beats(
     rng: random.Random,
     mode: str,

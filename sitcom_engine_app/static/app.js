@@ -12,6 +12,7 @@ const PAGES = {
   jokes: ["Jokes", "Jokes & Rules"],
   sparks: ["Sparks", "Scene Sparks"],
   generate: ["Generate", "Episode Generator"],
+  tester: ["Tester", "Tester Run"],
   library: ["Library", "Episode Library"],
   setup: ["Setup", "Local Setup"],
 };
@@ -97,6 +98,10 @@ const PAGE_GUIDE_NOTES = {
     title: "Generate with intent",
     text: "Tune the controls, optionally describe a scene, then press Generate Skit.",
   },
+  tester: {
+    title: "Phone-call proof",
+    text: "Run the same generate, canon, memory, export, and feedback path a tester should understand.",
+  },
   library: {
     title: "Saved moments",
     text: "Re-open favourites to reuse or share your best scenes quickly.",
@@ -124,6 +129,9 @@ const state = {
   promptAnalysis: null,
   favourites: [],
   currentEpisode: null,
+  testerStartedAt: null,
+  testerExportedAt: null,
+  testerCopiedFeedbackAt: null,
   page: pageFromPath(location.pathname),
 };
 
@@ -214,6 +222,7 @@ function render() {
   if (state.page === "jokes") renderJokes();
   if (state.page === "sparks") renderSparks();
   if (state.page === "generate") renderGenerate();
+  if (state.page === "tester") renderTester();
   if (state.page === "library") renderLibrary();
   if (state.page === "setup") renderSetup();
 }
@@ -344,6 +353,9 @@ function navPageStatus(page) {
   if (page === "library") {
     return state.favourites.length ? "green" : "amber";
   }
+  if (page === "tester") {
+    return state.currentEpisode ? "green" : "amber";
+  }
   if (page === "setup") {
     return "green";
   }
@@ -459,6 +471,7 @@ function renderStart() {
         <div class="action-row">
           <button class="primary" id="startDemoButton">Show Me A Funny One</button>
           <button class="primary" id="startGenerateButton" ${canGenerate ? "" : "disabled"}>Generate Skit</button>
+          <button id="startTesterButton">Start Tester Run</button>
         </div>
         <p class="helper-text" id="startMessage">${canGenerate ? "When you are ready, generate your first skit." : `${escapeHtml(nextPageHint)}.`}</p>
       </section>
@@ -486,6 +499,7 @@ function renderStart() {
   if (canGenerate) {
     startGenerateButton.addEventListener("click", () => generateEpisode(false));
   }
+  el("startTesterButton").addEventListener("click", startTesterRun);
   setGuidePageButtons();
 }
 
@@ -509,12 +523,31 @@ function renderTemplates() {
       ${renderPageGuide("templates")}
       <p>Choose one and start generating straight away. You can edit every part later.</p>
       <div class="template-grid">${cards}</div>
+      <section class="world-pack-panel">
+        <div>
+          <h3>World Packs</h3>
+          <p>Export this show as a shareable JSON world, or paste a world pack here and apply it locally.</p>
+        </div>
+        <div class="action-row compact">
+          <button id="exportWorldPackButton">Export Current World</button>
+          <button id="openWorldExportsButton">Open Exports Folder</button>
+        </div>
+        <label class="field">Import World JSON
+          <textarea id="worldPackInput" placeholder='Paste a SkitBox world pack JSON here. It can be a full pack with "state", or just the show state.'></textarea>
+        </label>
+        <div class="action-row compact">
+          <button class="primary" id="importWorldPackButton">Apply World Pack</button>
+        </div>
+      </section>
       <p class="helper-text" id="templatesMessage"></p>
     </section>
   `;
   document.querySelectorAll("[data-template-id]").forEach((button) => {
     button.addEventListener("click", () => applyTemplate(button.dataset.templateId));
   });
+  el("exportWorldPackButton").addEventListener("click", () => exportWorldPack("templatesMessage"));
+  el("openWorldExportsButton").addEventListener("click", () => openExports("templatesMessage"));
+  el("importWorldPackButton").addEventListener("click", () => importWorldPack("templatesMessage"));
 }
 
 function renderBible() {
@@ -886,12 +919,14 @@ function renderGenerate() {
           <div class="action-grid" id="postGenerateActions">
             <section class="mini-card">
               <p class="mini-card-title">Save</p>
+              <p class="mini-card-copy">Favourite keeps a good skit in the Library. It does not change future scenes.</p>
               <div class="action-row compact">
                 <button id="saveFavouriteButton">Save Favourite</button>
               </div>
             </section>
             <section class="mini-card">
               <p class="mini-card-title">Canon</p>
+              <p class="mini-card-copy">Canon teaches the selected room and cast to remember this incident later.</p>
               <div class="action-row compact">
                 <button id="saveCanonButton">Save This As Canon</button>
                 <button id="openMemoryButton">Open Memory</button>
@@ -902,6 +937,7 @@ function renderGenerate() {
               <div class="action-row compact">
                 <button id="copyEpisodeButton">Copy Skit</button>
                 <button id="copyLineButton">Copy Best Line</button>
+                <button id="copyShareButton">Copy Share Text</button>
               </div>
             </section>
             <section class="mini-card">
@@ -909,6 +945,7 @@ function renderGenerate() {
               <div class="action-row compact">
                 <button id="exportTxtButton">Export TXT</button>
                 <button id="exportHtmlButton">Export HTML</button>
+                <button id="exportCardButton">Export Share Card</button>
               </div>
             </section>
             <section class="mini-card">
@@ -969,8 +1006,10 @@ function renderGenerate() {
   el("openMemoryButton").hidden = !hasEpisode;
   el("copyEpisodeButton").hidden = !hasEpisode;
   el("copyLineButton").hidden = !hasEpisode;
+  el("copyShareButton").hidden = !hasEpisode;
   el("exportTxtButton").hidden = !hasEpisode;
   el("exportHtmlButton").hidden = !hasEpisode;
+  el("exportCardButton").hidden = !hasEpisode;
   el("openExportsButton").hidden = !hasEpisode;
   el("sameSeedButton").hidden = !hasEpisode;
   el("saveFavouriteButton").addEventListener("click", saveFavourite);
@@ -978,9 +1017,11 @@ function renderGenerate() {
   el("openMemoryButton").addEventListener("click", () => navigate("memory"));
   el("copyEpisodeButton").addEventListener("click", () => copyText(state.currentEpisode?.script || ""));
   el("copyLineButton").addEventListener("click", () => copyText(state.currentEpisode?.share_text || ""));
+  el("copyShareButton").addEventListener("click", () => copyText(state.currentEpisode?.share_text || ""));
   el("exportTxtButton").addEventListener("click", () => exportEpisode("txt"));
   el("exportHtmlButton").addEventListener("click", () => exportEpisode("html"));
-  el("openExportsButton").addEventListener("click", openExports);
+  el("exportCardButton").addEventListener("click", () => exportEpisode("card"));
+  el("openExportsButton").addEventListener("click", () => openExports("generateMessage"));
 }
 
 function canGenerateNow() {
@@ -1118,6 +1159,74 @@ function renderLibrary() {
   });
 }
 
+function renderTester() {
+  const episode = state.currentEpisode;
+  const memoryCount = state.doctor?.doctor?.memory_count || 0;
+  const started = state.testerStartedAt ? new Date(state.testerStartedAt).toLocaleTimeString() : "Not started";
+  const hasEpisode = Boolean(episode && episode.script);
+  const canSaveCanon = hasEpisode;
+  const canExport = hasEpisode;
+  const exported = Boolean(state.testerExportedAt);
+  const copiedFeedback = Boolean(state.testerCopiedFeedbackAt);
+  el("pageRoot").innerHTML = `
+    <div class="page-grid">
+      <section class="panel">
+        <h2>Tester Run</h2>
+        ${renderPageGuide("tester")}
+        <p>This is the short proof path for a stranger: generate, save canon, see memory, export, then copy feedback.</p>
+        <div class="tester-status">
+          <span class="pill">Started: ${escapeHtml(started)}</span>
+          <span class="pill">${hasEpisode ? "Scene ready" : "No scene yet"}</span>
+          <span class="pill">${memoryCount} canon incident${memoryCount === 1 ? "" : "s"}</span>
+        </div>
+        <div class="tester-track">
+          ${testerStep("1", "Generate a demo scene", hasEpisode, "A tester should get a skit without editing anything first.", "testerDemoButton", "Generate Demo Scene")}
+          ${testerStep("2", "Save the scene as canon", memoryCount > 0, "This is deliberately different from Save Favourite.", "testerCanonButton", "Save Current Scene As Canon", !canSaveCanon)}
+          ${testerStep("3", "Check Memory", memoryCount > 0, "The saved incident should appear on the Memory page.", "testerMemoryButton", "Open Memory")}
+          ${testerStep("4", "Generate with memory", hasEpisode && memoryCount > 0, "A later scene should mention Previously In This Room.", "testerRememberButton", "Generate Remembered Scene", memoryCount < 1)}
+          ${testerStep("5", "Export and share", exported, "Create a local TXT/HTML/share-card export.", "testerExportButton", "Export Share Card", !canExport)}
+          ${testerStep("6", "Copy feedback", copiedFeedback, "Paste this summary into GitHub or a message.", "testerCopyButton", "Copy Feedback Summary")}
+        </div>
+        <p class="message" id="testerMessage"></p>
+      </section>
+      <aside class="panel flat">
+        <h3>Feedback Summary</h3>
+        <textarea class="feedback-summary" id="testerFeedbackSummary" readonly>${escapeHtml(testerFeedbackSummary())}</textarea>
+        <div class="action-row compact">
+          <button id="testerCopySummaryButton">Copy Summary</button>
+        </div>
+      </aside>
+    </div>
+  `;
+  el("testerDemoButton").addEventListener("click", () => runDemoMode("testerMessage", { returnToPage: "tester" }));
+  el("testerCanonButton").addEventListener("click", () => saveCanon("testerMessage"));
+  el("testerMemoryButton").addEventListener("click", () => navigate("memory"));
+  el("testerRememberButton").addEventListener("click", generateTesterRememberedScene);
+  el("testerExportButton").addEventListener("click", () => exportEpisode("card", "testerMessage"));
+  el("testerCopyButton").addEventListener("click", () => copyText(testerFeedbackSummary(), "testerMessage"));
+  el("testerCopySummaryButton").addEventListener("click", () => copyText(testerFeedbackSummary(), "testerMessage"));
+}
+
+function testerStep(number, title, done, text, buttonId, buttonText, disabled = false) {
+  return `
+    <article class="tester-step ${done ? "done" : ""}">
+      <span class="tester-step-number">${escapeHtml(number)}</span>
+      <div>
+        <strong>${escapeHtml(title)}</strong>
+        <p>${escapeHtml(text)}</p>
+      </div>
+      <button id="${escapeAttr(buttonId)}" ${disabled ? "disabled" : ""}>${escapeHtml(buttonText)}</button>
+    </article>
+  `;
+}
+
+function startTesterRun() {
+  state.testerStartedAt = Date.now();
+  state.testerExportedAt = null;
+  state.testerCopiedFeedbackAt = null;
+  navigate("tester");
+}
+
 function renderSetup() {
   const doctor = state.doctor.doctor;
   el("pageRoot").innerHTML = `
@@ -1133,7 +1242,12 @@ function renderSetup() {
         </div>
         <div class="action-row">
           <button id="openSetupExportsButton">Open Exports Folder</button>
+          <button id="setupExportWorldButton">Export World Pack</button>
           <button class="danger" id="resetButton">Reset Default Show</button>
+        </div>
+        <div class="stop-note">
+          <strong>Python friction decision</strong>
+          <p>For this release, stay with the simple ZIP plus Python launcher. If testers hit Python trouble, the next packaging stage is an EXE build.</p>
         </div>
         <div class="stop-note">
           <strong>When you are finished</strong>
@@ -1148,7 +1262,8 @@ function renderSetup() {
       </aside>
     </div>
   `;
-  el("openSetupExportsButton").addEventListener("click", openExports);
+  el("openSetupExportsButton").addEventListener("click", () => openExports("setupMessage"));
+  el("setupExportWorldButton").addEventListener("click", () => exportWorldPack("setupMessage"));
   el("resetButton").addEventListener("click", resetShow);
 }
 
@@ -1453,8 +1568,11 @@ async function describePrompt(inputId, messageId) {
   return true;
 }
 
-async function runDemoMode(messageId) {
+async function runDemoMode(messageId, options = {}) {
   try {
+    if (!state.testerStartedAt && options.returnToPage === "tester") {
+      state.testerStartedAt = Date.now();
+    }
     setMessage(messageId, "Building a demo scene...");
     if (!state.show.template_selected) {
       const templateData = await api("/api/template", {
@@ -1488,13 +1606,39 @@ async function runDemoMode(messageId) {
     state.readiness = generated.readiness;
     state.promptAnalysis = generated.episode.prompt_analysis || state.promptAnalysis;
     state.scenePrompt = generated.episode.scene_prompt || state.scenePrompt;
-    state.page = "generate";
-    history.replaceState({}, "", "/generate");
+    const targetPage = options.returnToPage || "generate";
+    state.page = targetPage;
+    history.replaceState({}, "", `/${targetPage}`);
     render();
-    setMessage("generateMessage", "Demo scene generated. Change the prompt when you want your own one.");
+    setMessage(targetPage === "tester" ? "testerMessage" : "generateMessage", "Demo scene generated. Change the prompt when you want your own one.");
   } catch (error) {
     setMessage(messageId, error.message || "Demo could not run.");
   }
+}
+
+async function generateTesterRememberedScene() {
+  if (!state.testerStartedAt) {
+    state.testerStartedAt = Date.now();
+  }
+  const payload = {
+    mode: "Random",
+    seed: 20260629,
+    cast_size: 4,
+    weirdness: 72,
+    room_id: state.selectedRoomId || undefined,
+    prompt: state.scenePrompt || DEMO_PROMPT,
+    sparks: state.selectedSparks,
+  };
+  const data = await api("/api/generate", { method: "POST", body: JSON.stringify(payload) });
+  state.currentEpisode = data.episode;
+  state.selectedRoomId = data.episode.room?.id || state.selectedRoomId;
+  state.promptAnalysis = data.episode.prompt_analysis || state.promptAnalysis;
+  state.scenePrompt = data.episode.scene_prompt || state.scenePrompt;
+  state.readiness = data.readiness;
+  state.page = "tester";
+  history.replaceState({}, "", "/tester");
+  render();
+  setMessage("testerMessage", state.currentEpisode.script.includes("Previously In This Room") ? "Remembered scene generated." : "Scene generated. Save canon first if memory is not visible yet.");
 }
 
 function attachPromptExamples(inputId, messageId, afterUse) {
@@ -1556,25 +1700,59 @@ async function resetMemory() {
   setMessage("memoryMessage", "Canon memory reset. Rooms, cast, jokes, and favourites are still here.");
 }
 
-async function exportEpisode(format) {
+async function exportEpisode(format, messageId = "generateMessage") {
   if (!state.currentEpisode) {
-    setMessage("generateMessage", "Generate a skit first.");
+    setMessage(messageId, "Generate a skit first.");
     return;
   }
   const data = await api("/api/export", {
     method: "POST",
     body: JSON.stringify({ episode: state.currentEpisode, format }),
   });
-  setMessage("generateMessage", `Exported ${data.export.format.toUpperCase()}: ${data.export.path}`);
+  if (messageId === "testerMessage" && format === "card") {
+    state.testerExportedAt = Date.now();
+    if (state.page === "tester") render();
+  }
+  setMessage(messageId, `Exported ${data.export.format.toUpperCase()}: ${data.export.path}`);
 }
 
-async function openExports() {
+async function exportWorldPack(messageId = "templatesMessage") {
+  const data = await api("/api/world-pack/export", { method: "POST", body: JSON.stringify({}) });
+  setMessage(messageId, `World pack exported: ${data.world_pack.path}`);
+}
+
+async function importWorldPack(messageId = "templatesMessage") {
+  const input = el("worldPackInput");
+  if (!input || !input.value.trim()) {
+    setMessage(messageId, "Paste a world pack JSON first.");
+    return;
+  }
+  let payload;
+  try {
+    payload = JSON.parse(input.value);
+  } catch {
+    setMessage(messageId, "That does not look like valid JSON.");
+    return;
+  }
+  const data = await api("/api/world-pack/import", {
+    method: "POST",
+    body: JSON.stringify({ world_pack: payload }),
+  });
+  state.show = data.state;
+  state.readiness = data.readiness;
+  state.currentEpisode = null;
+  ensureSelectedRoom();
+  await refreshDoctor();
+  render();
+  setMessage(messageId, "World pack applied locally.");
+}
+
+async function openExports(messageId = "generateMessage") {
   const data = await api("/api/open-exports", { method: "POST", body: JSON.stringify({}) });
   const message = data.export_folder.opened
     ? `Opened exports: ${data.export_folder.path}`
     : `Exports folder: ${data.export_folder.path}`;
-  setMessage("generateMessage", message);
-  setMessage("setupMessage", message);
+  setMessage(messageId, message);
 }
 
 async function resetShow() {
@@ -1629,23 +1807,59 @@ function sparkIconClass(id) {
   return "secret-mini";
 }
 
-async function copyText(text) {
+async function copyText(text, messageId = "generateMessage") {
   if (!text) {
-    setMessage("generateMessage", "Nothing to copy yet.");
+    setMessage(messageId, "Nothing to copy yet.");
     return;
   }
   try {
     await navigator.clipboard.writeText(text);
-    setMessage("generateMessage", "Copied.");
+    if (messageId === "testerMessage") {
+      state.testerCopiedFeedbackAt = Date.now();
+      if (state.page === "tester") render();
+    }
+    setMessage(messageId, "Copied.");
   } catch {
     const fallback = el("copyFallback");
-    fallback.hidden = false;
-    fallback.value = text;
-    fallback.focus();
-    fallback.select();
-    document.execCommand("copy");
-    setMessage("generateMessage", "Copied. If the browser blocked it, the text is selected below.");
+    if (messageId === "testerMessage") {
+      state.testerCopiedFeedbackAt = Date.now();
+      if (state.page === "tester") render();
+    }
+    if (fallback) {
+      fallback.hidden = false;
+      fallback.value = text;
+      fallback.focus();
+      fallback.select();
+      document.execCommand("copy");
+      setMessage(messageId, "Copied. If the browser blocked it, the text is selected below.");
+    } else {
+      setMessage(messageId, "Copy was blocked by the browser. Select the summary text manually.");
+    }
   }
+}
+
+function testerFeedbackSummary() {
+  const episode = state.currentEpisode || {};
+  const doctor = state.doctor?.doctor || {};
+  const memoryCount = doctor.memory_count || 0;
+  const started = state.testerStartedAt ? new Date(state.testerStartedAt).toISOString() : "not started";
+  return [
+    "SkitBox tester run",
+    `Started: ${started}`,
+    `Version: ${state.doctor?.version || "unknown"}`,
+    `Storage: ${doctor.data_dir || "unknown"}`,
+    `Generated scene: ${episode.title || "not yet"}`,
+    `Mode/seed: ${episode.mode || "n/a"} / ${episode.seed || "n/a"}`,
+    `Room: ${episode.room?.name || "n/a"}`,
+    `Canon incidents: ${memoryCount}`,
+    `Favourite count: ${doctor.favourite_count || 0}`,
+    `Best line: ${episode.best_line || "n/a"}`,
+    "Python blocked tester: yes/no",
+    "Export made sense: yes/no",
+    "Save Favourite vs Save Canon made sense: yes/no",
+    "Funniest bit:",
+    "Confusing bit:",
+  ].join("\n");
 }
 
 function lines(text) {

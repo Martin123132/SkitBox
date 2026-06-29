@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+from pathlib import Path
 import re
 import subprocess
 import sys
@@ -47,6 +48,9 @@ class AppSmokeTests(unittest.TestCase):
                 memory_page = self._text(url + "/memory")
                 self.assertIn("<!doctype html>", memory_page)
                 self.assertIn("data-page=\"memory\"", memory_page)
+                tester_page = self._text(url + "/tester")
+                self.assertIn("<!doctype html>", tester_page)
+                self.assertIn("data-page=\"tester\"", tester_page)
 
                 css = self._text(url + "/static/app.css")
                 self.assertIn("skitbox-guide-bg-v1.png", css)
@@ -124,6 +128,23 @@ class AppSmokeTests(unittest.TestCase):
                 exported = self._post_json(url + "/api/export", {"episode": generated["episode"], "format": "html"})
                 self.assertTrue(exported["ok"])
                 self.assertTrue(exported["export"]["path"].startswith(tmp))
+
+                card_exported = self._post_json(url + "/api/export", {"episode": generated["episode"], "format": "card"})
+                self.assertTrue(card_exported["ok"])
+                self.assertEqual(card_exported["export"]["format"], "card")
+                self.assertTrue(card_exported["export"]["path"].startswith(tmp))
+                self.assertEqual(Path(card_exported["export"]["path"]).suffix, ".html")
+
+                world_pack = self._post_json(url + "/api/world-pack/export", {})
+                self.assertTrue(world_pack["ok"])
+                self.assertTrue(world_pack["world_pack"]["path"].startswith(tmp))
+                world_pack_payload = json.loads(Path(world_pack["world_pack"]["path"]).read_text(encoding="utf-8"))
+                self.assertEqual(world_pack_payload["skitbox_world_pack"], 1)
+                world_pack_payload["state"]["show_name"] = "Smoke Imported Show"
+                imported = self._post_json(url + "/api/world-pack/import", {"world_pack": world_pack_payload})
+                self.assertTrue(imported["ok"])
+                self.assertEqual(imported["state"]["show_name"], "Smoke Imported Show")
+                self.assertTrue(imported["readiness"]["can_generate"])
 
                 open_exports = self._post_json(url + "/api/open-exports", {})
                 self.assertTrue(open_exports["ok"])
