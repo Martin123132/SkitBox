@@ -246,8 +246,9 @@ function renderGuide() {
       <p class="helper-text">Use one page at a time. Complete each step, then move to the next.</p>
       <div class="demo-callout">
         <strong>Want the fast path?</strong>
-        <p>Generate one ready-made scene first, then edit the show once you have seen the shape.</p>
+        <p>Run Tester if you want the clean download-to-export proof path, or generate one ready-made scene first.</p>
         <div class="action-row compact">
+          <button class="primary" id="guideTesterButton">Start Tester Run</button>
           <button class="primary" id="guideDemoButton">Show Me A Funny One</button>
         </div>
         <p class="message" id="guideMessage"></p>
@@ -256,6 +257,7 @@ function renderGuide() {
       <p class="helper-text">Ready check: ${escapeHtml(readinessLabel)}</p>
     </section>
   `;
+  el("guideTesterButton").addEventListener("click", startTesterRun);
   el("guideDemoButton").addEventListener("click", () => runDemoMode("guideMessage"));
   const firstRunTemplateButton = el("firstRunTemplateButton");
   if (firstRunTemplateButton) {
@@ -264,6 +266,10 @@ function renderGuide() {
   const firstRunDemoButton = el("firstRunDemoButton");
   if (firstRunDemoButton) {
     firstRunDemoButton.addEventListener("click", () => runDemoMode("guideMessage"));
+  }
+  const firstRunTesterButton = el("firstRunTesterButton");
+  if (firstRunTesterButton) {
+    firstRunTesterButton.addEventListener("click", startTesterRun);
   }
   setGuidePageButtons();
 }
@@ -374,6 +380,7 @@ function renderFirstRunCard() {
         </ol>
       </div>
       <div class="action-row compact">
+        <button class="primary" id="firstRunTesterButton">Start Tester Run</button>
         <button class="primary" id="firstRunDemoButton">Show Me A Funny One</button>
         <button id="firstRunTemplateButton">Pick A World</button>
       </div>
@@ -470,10 +477,10 @@ function renderStart() {
         ${renderReadiness()}
         <div class="action-row">
           <button class="primary" id="startDemoButton">Show Me A Funny One</button>
-          <button class="primary" id="startGenerateButton" ${canGenerate ? "" : "disabled"}>Generate Skit</button>
-          <button id="startTesterButton">Start Tester Run</button>
+          <button class="primary" id="startTesterButton">Start Tester Run</button>
+          <button id="startGenerateButton" ${canGenerate ? "" : "disabled"}>Generate Skit</button>
         </div>
-        <p class="helper-text" id="startMessage">${canGenerate ? "When you are ready, generate your first skit." : `${escapeHtml(nextPageHint)}.`}</p>
+        <p class="helper-text" id="startMessage">${canGenerate ? "For a quick public test, start with Tester Run." : `${escapeHtml(nextPageHint)}.`}</p>
       </section>
       <aside class="panel flat">
         <h3>Show Snapshot</h3>
@@ -1194,7 +1201,9 @@ function renderTester() {
         <textarea class="feedback-summary" id="testerFeedbackSummary" readonly>${escapeHtml(testerFeedbackSummary())}</textarea>
         <div class="action-row compact">
           <button id="testerCopySummaryButton">Copy Summary</button>
+          <button id="testerOpenExportsButton">Open Exports Folder</button>
         </div>
+        <p class="helper-text">If the browser blocks copy, select this summary box and press Ctrl+C.</p>
       </aside>
     </div>
   `;
@@ -1205,6 +1214,7 @@ function renderTester() {
   el("testerExportButton").addEventListener("click", () => exportEpisode("card", "testerMessage"));
   el("testerCopyButton").addEventListener("click", () => copyText(testerFeedbackSummary(), "testerMessage"));
   el("testerCopySummaryButton").addEventListener("click", () => copyText(testerFeedbackSummary(), "testerMessage"));
+  el("testerOpenExportsButton").addEventListener("click", () => openExports("testerMessage"));
 }
 
 function testerStep(number, title, done, text, buttonId, buttonText, disabled = false) {
@@ -1713,7 +1723,8 @@ async function exportEpisode(format, messageId = "generateMessage") {
     state.testerExportedAt = Date.now();
     if (state.page === "tester") render();
   }
-  setMessage(messageId, `Exported ${data.export.format.toUpperCase()}: ${data.export.path}`);
+  const label = format === "card" ? "Share card saved in exports" : `Exported ${data.export.format.toUpperCase()}`;
+  setMessage(messageId, `${label}: ${data.export.path}`);
 }
 
 async function exportWorldPack(messageId = "templatesMessage") {
@@ -1824,6 +1835,13 @@ async function copyText(text, messageId = "generateMessage") {
     if (messageId === "testerMessage") {
       state.testerCopiedFeedbackAt = Date.now();
       if (state.page === "tester") render();
+      const summary = el("testerFeedbackSummary");
+      if (summary) {
+        summary.focus();
+        summary.select();
+        setMessage(messageId, "Copy was blocked, so the feedback summary is selected. Press Ctrl+C.");
+        return;
+      }
     }
     if (fallback) {
       fallback.hidden = false;

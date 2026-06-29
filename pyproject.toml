@@ -1,6 +1,6 @@
 [project]
 name = "skitbox"
-version = "0.3.2"
+version = "0.3.3"
 description = "Local-first skit generator for tiny sitcoms from weird ideas."
 readme = "README.md"
 requires-python = ">=3.10"

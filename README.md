@@ -26,6 +26,7 @@ one simple path.
 SkitBox needs Python 3.10 or newer. It does not need npm, Ollama, OpenAI,
 Claude, API keys, login, or an installer. The current packaging choice is
 tracked in [docs/PYTHON_FRICTION_DECISION.md](docs/PYTHON_FRICTION_DECISION.md).
+The short roadmap is in [docs/ROADMAP.md](docs/ROADMAP.md).
 
 To stop it, close the server window or double-click `STOP_SkitBox_WINDOWS.bat`.
 
@@ -111,10 +112,11 @@ powershell -ExecutionPolicy Bypass -File scripts\verify_release_zip.ps1 -ZipPath
 
 ## Feedback
 
-If you try it, leave first-run feedback in
-[Issue #1](https://github.com/Martin123132/SkitBox/issues/1). The most useful
-notes are whether it opened, how long it took to get your first skit, and what
-line made you laugh.
+If you try it, open a
+[new issue](https://github.com/Martin123132/SkitBox/issues/new/choose) and pick
+`First-run feedback`, `Bug report`, or `Funny output`. The most useful notes are
+whether it opened, how long it took to get your first skit, and what line made
+you laugh.
 
 ## License
 

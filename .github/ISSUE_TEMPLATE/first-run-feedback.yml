@@ -1,0 +1,66 @@
+name: First-run feedback
+description: Tell us how the download, unzip, double-click, generate flow went.
+title: "First-run feedback: "
+labels: ["first-run", "feedback"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for trying SkitBox. The most useful notes are plain and practical: did it open, did it make a skit, and where did it get confusing?
+  - type: input
+    id: version
+    attributes:
+      label: SkitBox version
+      description: Example: v0.3.3
+      placeholder: v0.3.3
+    validations:
+      required: true
+  - type: input
+    id: windows
+    attributes:
+      label: Windows version
+      placeholder: Windows 11, Windows 10, not sure
+  - type: dropdown
+    id: python_blocked
+    attributes:
+      label: Did Python block you?
+      options:
+        - "No"
+        - "Yes"
+        - "Not sure"
+    validations:
+      required: true
+  - type: input
+    id: first_skit_time
+    attributes:
+      label: Time to first skit
+      placeholder: About 2 minutes
+  - type: dropdown
+    id: tester_run
+    attributes:
+      label: Did Tester Run make sense?
+      options:
+        - "Yes"
+        - "Mostly"
+        - "No"
+        - "I did not try it"
+    validations:
+      required: true
+  - type: textarea
+    id: what_happened
+    attributes:
+      label: What happened?
+      description: Paste the Tester feedback summary if you copied it.
+      placeholder: Browser opened, generated a skit, export worked...
+    validations:
+      required: true
+  - type: textarea
+    id: confusing
+    attributes:
+      label: What was confusing or scary?
+      placeholder: Any message, button, Windows prompt, or wording that made you hesitate.
+  - type: textarea
+    id: funniest
+    attributes:
+      label: Funniest line or seed
+      placeholder: The line that made you laugh, or the mode/seed if you noticed it.

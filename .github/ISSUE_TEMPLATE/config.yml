@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Download the latest SkitBox release
+    url: https://github.com/Martin123132/SkitBox/releases/latest
+    about: Get the newest ZIP before reporting first-run feedback.

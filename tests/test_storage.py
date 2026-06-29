@@ -5,9 +5,29 @@ import os
 from pathlib import Path
 import tempfile
 import unittest
+from unittest import mock
 
 
 class StorageTests(unittest.TestCase):
+    def test_replace_with_retry_handles_transient_permission_error(self) -> None:
+        from sitcom_engine_app import storage
+
+        class FlakySource:
+            def __init__(self) -> None:
+                self.attempts = 0
+
+            def replace(self, target: Path) -> None:
+                self.attempts += 1
+                if self.attempts < 3:
+                    raise PermissionError("locked briefly")
+
+        source = FlakySource()
+        with mock.patch.object(storage.time, "sleep") as sleep:
+            storage._replace_with_retry(source, Path("D:/SkitBoxData/show.json"))  # type: ignore[arg-type]
+
+        self.assertEqual(source.attempts, 3)
+        self.assertEqual(sleep.call_count, 2)
+
     def test_storage_saves_exports_and_opens_under_home(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             old_home = os.environ.get("SKITBOX_HOME")

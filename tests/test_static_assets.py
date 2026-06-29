@@ -42,9 +42,14 @@ class StaticAssetTests(unittest.TestCase):
         self.assertIn("renderMemory", js)
         self.assertIn("renderTester", js)
         self.assertIn("testerFeedbackSummary", js)
+        self.assertIn("firstRunTesterButton", js)
+        self.assertIn("guideTesterButton", js)
         self.assertIn("Save This As Canon", js)
         self.assertIn("Copy Share Text", js)
         self.assertIn("Export Share Card", js)
+        self.assertIn("testerOpenExportsButton", js)
+        self.assertIn("Share card saved in exports", js)
+        self.assertIn("Copy was blocked, so the feedback summary is selected", js)
         self.assertIn("/api/canon", js)
         self.assertIn("/api/memory/reset", js)
         self.assertIn("/api/world-pack/export", js)
@@ -72,6 +77,19 @@ class StaticAssetTests(unittest.TestCase):
         self.assertIn('href="/tester"', html)
         self.assertIn("SkitBox", html)
         self.assertIn("<title>SkitBox</title>", html)
+
+    def test_github_issue_templates_are_present(self) -> None:
+        template_dir = ROOT / ".github" / "ISSUE_TEMPLATE"
+        expected = [
+            "bug_report.yml",
+            "config.yml",
+            "first-run-feedback.yml",
+            "funny_output.yml",
+        ]
+        for name in expected:
+            path = template_dir / name
+            self.assertTrue(path.exists(), f"Missing issue template: {name}")
+            self.assertIn("name:", path.read_text(encoding="utf-8"))
 
 
 if __name__ == "__main__":

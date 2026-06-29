@@ -1,0 +1,56 @@
+name: Bug report
+description: Report something broken, confusing, or not working as expected.
+title: "Bug: "
+labels: ["bug"]
+body:
+  - type: input
+    id: version
+    attributes:
+      label: SkitBox version
+      placeholder: v0.3.3
+    validations:
+      required: true
+  - type: input
+    id: windows
+    attributes:
+      label: Windows version
+      placeholder: Windows 11, Windows 10, not sure
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: What did you click or type before it broke?
+      placeholder: |
+        1. Double-clicked START_SkitBox_WINDOWS.bat
+        2. Pressed Start Tester Run
+        3. Pressed Export Share Card
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect?
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: What actually happened?
+      description: Include any error text if you can.
+    validations:
+      required: true
+  - type: textarea
+    id: screenshot
+    attributes:
+      label: Screenshot or copied message
+      description: Drag in a screenshot or paste the message from the app.
+  - type: dropdown
+    id: data_location
+    attributes:
+      label: Did this involve saving, exporting, or opening folders?
+      options:
+        - "No"
+        - "Yes"
+        - "Not sure"
+    validations:
+      required: true

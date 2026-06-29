@@ -1,0 +1,35 @@
+name: Funny output
+description: Share a line, seed, or scene that worked.
+title: "Funny output: "
+labels: ["funny-output"]
+body:
+  - type: input
+    id: version
+    attributes:
+      label: SkitBox version
+      placeholder: v0.3.3
+  - type: input
+    id: mode_seed
+    attributes:
+      label: Mode and seed
+      placeholder: Bad Plan / 20260629
+  - type: textarea
+    id: line
+    attributes:
+      label: Best line
+      placeholder: Paste the line that got you.
+    validations:
+      required: true
+  - type: textarea
+    id: setup
+    attributes:
+      label: Scene setup
+      placeholder: Cast, room, prompt, sparks, or anything you remember.
+  - type: dropdown
+    id: would_share
+    attributes:
+      label: Would this make a good share card?
+      options:
+        - "Yes"
+        - "Maybe"
+        - "No"

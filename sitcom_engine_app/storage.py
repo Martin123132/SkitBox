@@ -559,13 +559,24 @@ def _write_json(path: Path, payload: Any) -> None:
     tmp = path.with_name(f"{path.name}.{os.getpid()}.{time.time_ns()}.tmp")
     try:
         tmp.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
-        tmp.replace(path)
+        _replace_with_retry(tmp, path)
     finally:
         try:
             if tmp.exists():
                 tmp.unlink()
         except OSError:
             pass
+
+
+def _replace_with_retry(source: Path, target: Path) -> None:
+    for attempt in range(6):
+        try:
+            source.replace(target)
+            return
+        except PermissionError:
+            if attempt == 5:
+                raise
+            time.sleep(0.05 * (attempt + 1))
 
 
 def _slugify(value: str) -> str:
